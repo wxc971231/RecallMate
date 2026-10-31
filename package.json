@@ -1,0 +1,44 @@
+{
+  "name": "recallmate",
+  "version": "0.1.4",
+  "description": "离线填空背诵工具",
+  "author": "RecallMate",
+  "private": true,
+  "main": "out/main/index.js",
+  "scripts": {
+    "postinstall": "install-electron",
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:desktop": "electron scripts/test-desktop.cjs",
+    "build": "npm run typecheck && electron-vite build",
+    "dist": "npm run build && electron-builder --win dir --x64 && node scripts/package-folder.cjs",
+    "web": "vite --config vite.web.config.ts --host 127.0.0.1"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "electron": "45.2.1",
+    "electron-builder": "^26.0.0",
+    "electron-vite": "4.0.1",
+    "typescript": "~5.9.3",
+    "vite": "^7.0.0",
+    "vitest": "^3.2.0"
+  },
+  "build": {
+    "appId": "com.recallmate.desktop",
+    "productName": "RecallMate",
+    "directories": { "output": ".cache/build" },
+    "files": ["out/**/*", "package.json"],
+    "extraResources": [{ "from": "examples", "to": "examples" }],
+    "win": { "target": ["dir"], "icon": "build/icon.ico", "signExecutable": false }
+  }
+}
