@@ -1,0 +1,134 @@
+/* Android uses the same components and matching rules, with touch-sized
+   controls and one scrolling work area that resizes above the keyboard. */
+.native-app {
+  --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  height: 100dvh;
+  min-height: 0;
+  padding: 0 var(--safe-area-inset-right, env(safe-area-inset-right, 0px)) 0 var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.native-app .app-header { height: calc(56px + var(--safe-top)); padding: var(--safe-top) 16px 0; gap: 12px; }
+.native-app .main-content { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 20px 16px calc(100px + var(--safe-bottom)); }
+.native-app .app-footer { bottom: calc(56px + var(--safe-bottom)); height: 26px; padding: 0 16px; background: #f7f8fa; }
+.native-app .main-nav { position: fixed; inset: auto 0 0; height: calc(56px + var(--safe-bottom)); padding-bottom: var(--safe-bottom); border-top: 1px solid var(--line); background: white; gap: 0; z-index: 30; }
+.native-app .main-nav > button { flex: 1; justify-content: center; border-bottom: 0; border-top: 2px solid transparent; font-size: 1rem; }
+.native-app .main-nav > button.active { border-top-color: var(--green); background: #f0f6f2; }
+.native-app .main-nav > button > span { background: #edf1ed; border-radius: 20px; padding: 1px 7px; }
+.native-app .brand { font-size: 1.1rem; gap: 7px; }
+.native-app .header-right { gap: 8px; }
+.native-app .header-tool { min-height: 44px; padding: 8px 5px; }
+.native-app .help-tool { display: none; }
+.native-app .icon-button, .native-app .action-menu > summary { min-width: 44px; min-height: 44px; }
+.native-app .primary, .native-app .secondary, .native-app .danger { min-height: 44px; }
+.native-app .text-button { min-height: 44px; white-space: normal; }
+.native-app .search-box { min-height: 44px; }
+.native-app input:not([type=range]), .native-app textarea { font-size: max(16px, 1rem); }
+.native-app .action-menu > div > button { min-height: 46px; white-space: normal; }
+.native-app .action-menu > div { min-width: min(220px, 75vw); }
+.native-app .toast { bottom: calc(91px + var(--safe-bottom)); width: max-content; max-width: calc(100% - 24px); }
+.native-app .font-popover { position: fixed; top: calc(62px + var(--safe-top)); right: 12px; width: 340px; max-width: calc(100vw - 24px); max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 78px); }
+.native-app .font-adjust > button { width: 42px; height: 42px; }
+.native-app .font-adjust input { min-height: 42px; }
+.native-app .modal-backdrop { padding: calc(12px + var(--safe-top)) 12px calc(12px + var(--safe-bottom)); }
+.native-app .modal, .native-app .modal.wide { max-height: 100%; width: 100%; padding: 20px; overscroll-behavior: contain; }
+.native-app .modal-footer { gap: 12px; }
+.native-app .modal-footer > .button-row { margin-left: auto; }
+.native-app .code-input { height: 190px; }
+.native-app .import-grid { grid-template-columns: 1fr; }
+.native-app .file-drop { min-height: 76px; }
+.native-app .file-drop small { line-height: 1.7; }
+.native-app .import-preview { padding: 14px; }
+.native-app .empty-state { padding: 64px 12px; }
+.native-app .tabs > button { min-height: 50px; }
+.native-app .pagination button { min-width: 36px; height: 40px; }
+.native-app .data-path { font-family: inherit; }
+
+/* A card row is still the same semantic table on the desktop. Mobile places
+   the question/bank name first and puts actions in a predictable bottom row. */
+@media (max-width: 600px) {
+  .native-app .home-toolbar { align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+  .native-app .toolbar-start { flex: 1; gap: 9px; }
+  .native-app .search-box { width: 100%; }
+  .native-app .home-toolbar .collection-count { font-size: .85rem; }
+  .native-app .data-table, .native-app .data-table tbody { display: block; }
+  .native-app .data-table colgroup, .native-app .data-table thead { display: none; }
+  .native-app .data-table tr { display: grid; border: 1px solid var(--line); border-radius: 8px; background: white; margin-bottom: 12px; padding: 14px; }
+  .native-app .data-table td { display: block; border: 0; padding: 0; background: transparent; min-width: 0; }
+  .native-app .bank-row { grid-template-columns: auto 1fr; gap: 7px 20px; }
+  .native-app .bank-row > td:first-child { grid-column: 1 / -1; margin-bottom: 4px; }
+  .native-app .bank-row > td[data-label] { display: flex; align-items: center; gap: 7px; text-align: left; color: #607168; font-size: .9rem; }
+  .native-app .bank-row > td[data-label]::before { content: attr(data-label); color: var(--muted); }
+  .native-app .bank-row > td.last-practiced { display: none; }
+  .native-app .bank-row > td:last-child { grid-column: 1 / -1; border-top: 1px solid #eff2f0; padding-top: 10px; margin-top: 3px; }
+  .native-app .bank-name-cell { align-items: flex-start; }
+  .native-app .bank-name { font-size: 1.08rem; font-weight: 600; }
+  .native-app .bank-name-cell > svg { margin-top: 6px; }
+  .native-app .bank-actions { justify-content: flex-start; gap: 16px; }
+  .native-app .bank-actions > .secondary { flex: 1; }
+  .native-app .question-row { grid-template-columns: 32px minmax(0, 1fr); gap: 6px 8px; }
+  .native-app .question-row > .question-number { grid-column: 1; align-self: start; padding-top: 3px; }
+  .native-app .question-row > .question-row-main { grid-column: 2; }
+  .native-app .question-row > .numeric { display: none; }
+  .native-app .question-row > td:last-child { grid-column: 2; margin-top: 6px; }
+  .native-app .question-row .row-actions { justify-content: flex-end; gap: 10px; }
+  .native-app .question-tags { gap: 4px 12px; }
+  .native-app .detail-heading { display: block; }
+  .native-app .detail-title { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 4px 8px; }
+  .native-app .detail-title h1 { font-size: 1.2rem; }
+  .native-app .detail-title > .collection-count { grid-column: 2; font-size: .85rem; }
+  .native-app .detail-title > .icon-button { margin-left: -6px; }
+  .native-app .detail-heading > .button-row { display: grid; grid-template-columns: 1fr 1fr 44px; gap: 8px; margin-top: 16px; }
+  .native-app .list-toolbar { flex-wrap: wrap; gap: 10px; }
+  .native-app .list-toolbar .search-box { flex: 1; min-width: 160px; }
+  .native-app .list-toolbar > .button-row { width: 100%; justify-content: space-between; }
+  .native-app .section-heading { align-items: flex-start; gap: 12px; }
+  .native-app .section-heading h2 { min-width: 0; overflow-wrap: anywhere; }
+  .native-app .section-heading > button { flex-shrink: 0; }
+  .native-app .summary-card { padding: 12px 0; margin-top: 24px; }
+  .native-app .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .native-app .summary-page .button-row { flex-wrap: wrap; }
+}
+
+.native-app[data-route=practice] .main-nav { display: none; }
+.native-app[data-route=practice] .app-footer { position: static; min-height: calc(26px + var(--safe-bottom)); height: auto; padding: 0 16px var(--safe-bottom); }
+.native-app .practice-main { display: flex; padding: 12px 16px 0; background: white; overflow: hidden; }
+.native-app .practice-page { min-height: 0; width: 100%; height: 100%; overflow: hidden; }
+.native-app .practice-top { min-height: 44px; gap: 10px; flex-shrink: 0; }
+.native-app .practice-top > .back-link { min-height: 44px; font-size: .9rem; }
+.native-app .practice-bank { display: block; font-size: .9rem; line-height: 1.5; overflow: hidden; max-height: 3em; }
+.native-app .practice-bank > span { display: block; font-size: .75rem; }
+.native-app .progress-count { font-size: .85rem; }
+.native-app .progress-track { margin-top: 5px; }
+.native-app .question-card { flex: 1 1 0; min-height: 0; padding-top: 20px; overflow: hidden; }
+.native-app .question-meta { flex-shrink: 0; }
+.native-app .question-text { flex: 1 1 0; min-height: 0; line-height: 2.8; margin: 12px 0 8px; overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; touch-action: pan-y; scroll-padding-block: 12px; padding-bottom: 12px; }
+.native-app .blank-wrap input { font-size: inherit; }
+.native-app .question-feedback { flex-shrink: 0; padding: 8px 0 12px; }
+.native-app .practice-actions { position: static; padding: 8px 0 10px; gap: 6px; display: grid; grid-template-columns: 1fr; flex-shrink: 0; }
+.native-app .help-actions { justify-content: space-between; flex-wrap: nowrap; gap: 4px; }
+.native-app .tool-button { min-height: 44px; padding: 8px 4px; gap: 4px; font-size: .88rem; touch-action: manipulation; }
+.native-app .answer-button { touch-action: none; -webkit-touch-callout: none; }
+.native-app .skip-button { padding-left: 12px; margin-left: 0; }
+.native-app .practice-actions > .button-row { width: 100%; margin-left: 0; }
+.native-app .practice-actions > .button-row > button { width: 100%; min-height: 46px; }
+.native-app .practice-actions kbd { display: none; }
+.native-app[data-route=practice] .toast { bottom: calc(158px + var(--safe-bottom)); }
+
+/* Keep the system insets while giving the question the space normally used by
+   navigation and status chrome. Closing the real IME restores the full layout. */
+.native-app[data-practice-focus=true] { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
+.native-app[data-practice-focus=true] .app-header,
+.native-app[data-practice-focus=true] .practice-top,
+.native-app[data-practice-focus=true] .progress-track,
+.native-app[data-practice-focus=true] .app-footer { display: none; }
+.native-app[data-practice-focus=true] .practice-main { padding-top: 0; }
+.native-app[data-practice-focus=true] .question-card { padding-top: 8px; }
+.native-app[data-practice-focus=true] .question-text { margin-top: 8px; }
+
+@media (max-height: 430px) and (min-width: 500px) {
+  .native-app .practice-actions { grid-template-columns: 1fr auto; }
+  .native-app .practice-actions > .button-row > button { min-width: 110px; }
+  .native-app .question-card { padding-top: 12px; }
+}

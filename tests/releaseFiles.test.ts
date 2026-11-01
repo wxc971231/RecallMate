@@ -20,6 +20,14 @@ describe('发布目录清理', () => {
     const release = join(root, 'release'); await writeFile(join(release, 'notes.md'), 'retain');
     await expect(inspectRelease(root, release)).rejects.toThrow('Unrecognized'); expect(await readFile(join(release, 'notes.md'), 'utf8')).toBe('retain');
   });
+  it('重新发布 Windows 版时保留独立的 Android 发布目录', async () => {
+    const release = join(root, 'release'); await mkdir(join(release, 'android'));
+    await writeFile(join(release, 'android', 'RecallMate-Android-0.1.0.apk'), 'android');
+    await writeFile(join(release, 'RecallMate-0.1.4-Portable.zip'), 'windows');
+    const entries = await inspectRelease(root, release); expect(entries.map((e: { name: string }) => e.name)).toEqual(['RecallMate-0.1.4-Portable.zip']);
+    await removeReleaseEntries(release, entries);
+    expect(await readFile(join(release, 'android', 'RecallMate-Android-0.1.0.apk'), 'utf8')).toBe('android');
+  });
   it('删除旧版本之前完整备份 data，清理后题库仍可恢复', async () => {
     const release = join(root, 'release'), bank = join(release, 'RecallMate-0.1.1-Portable', 'data', 'banks');
     await mkdir(bank, { recursive: true }); await writeFile(join(bank, 'bank.json'), 'preserved bank');

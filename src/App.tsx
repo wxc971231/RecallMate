@@ -9,6 +9,11 @@ import { sampleText } from './sample';
 import { PracticePage } from './components/PracticePage';
 import { FontControls } from './components/FontControls';
 import { useSettings } from './hooks/useSettings';
+import { ShortcutSettings } from './components/ShortcutSettings';
+import { appVersion, isAndroid, isDesktop, isPreview } from './services/platform';
+import { useAndroidNavigation } from './hooks/useAndroidNavigation';
+import { useAndroidKeyboard } from './hooks/useAndroidKeyboard';
+import { App as AndroidApp } from '@capacitor/app';
 
 type Route = { type: 'home' | 'wrong' } | { type: 'detail' | 'practice'; id: string };
 type Confirm = { title: string; message: string; danger?: boolean; label?: string; action(): void | Promise<void> };
@@ -67,6 +72,7 @@ function EditorModal({ question, close, save }: { question?: Question; close(): 
 
 export default function App() {
   const preferences = useSettings();
+  const keyboardVisible = useAndroidKeyboard();
   const [page, setPage] = useState(1);
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const data = useRef<Bundle[]>([]);
@@ -128,7 +134,7 @@ export default function App() {
     if (!force && b.session && !b.session.isFinished) setConfirm({ title: '开始新的一轮？', message: '这会替换尚未完成的练习进度，已经产生的错题和历史统计会保留。', label: '开始新练习', action });
     else action();
   };
-  const exportBank = (b: Bundle) => run(async () => { await flushPending(); await flushSaves(); if (await storage.exportFile(b)) notify(window.recallmate ? '已导出至数据目录的 exports 文件夹' : '题库与练习记录已下载'); });
+  const exportBank = (b: Bundle) => run(async () => { await flushPending(); await flushSaves(); if (await storage.exportFile(b)) notify(isAndroid ? '备份已保存到所选位置' : isDesktop ? '已导出至数据目录的 exports 文件夹' : '题库与练习记录已下载'); });
   const importBundle = (b: Bundle) => { update(b); setImportText(null); detail(b.bank.id); notify(`已导入“${b.bank.name}”，共 ${b.bank.questions.length} 道题`); };
   const choose = async () => run(async () => {
     const file = await storage.chooseFile();
@@ -160,14 +166,42 @@ export default function App() {
     update(dismissWrongQuestion(b, id)); notify('已移出错题本，历史统计仍然保留');
   };
 
+  useAndroidNavigation(async () => {
+    if (confirm) { if (!confirmBusy) setConfirm(null); return; }
+    if (rename) { setRename(null); return; }
+    if (editor) { setEditor(null); return; }
+    if (importText !== null) { setImportText(null); return; }
+    if (info) { setInfo(null); return; }
+    const fontClose = document.querySelector<HTMLButtonElement>('[aria-label="关闭字号设置"]');
+    if (fontClose) { fontClose.click(); return; }
+    const menus = document.querySelectorAll<HTMLDetailsElement>('details[open]');
+    if (menus.length) { menus.forEach(menu => { menu.open = false; }); return; }
+    try {
+      await flushPending(); await preferences.flush(); await flushSaves();
+      if (route.type === 'practice' || route.type === 'detail') navigate(route.type === 'practice' ? { type: 'detail', id: route.id } : { type: 'home' });
+      else if (route.type === 'wrong') navigate({ type: 'home' });
+      else await AndroidApp.minimizeApp();
+    } catch { notify('还有内容未保存，请点击“重试保存”后返回。', true); }
+  });
+
+  useEffect(() => {
+    const dismiss = (event: MouseEvent) => {
+      document.querySelectorAll<HTMLDetailsElement>('.action-menu[open]').forEach(menu => {
+        if (!menu.contains(event.target as Node) || (event.target as HTMLElement).closest('button')) menu.open = false;
+      });
+    };
+    document.addEventListener('click', dismiss);
+    return () => document.removeEventListener('click', dismiss);
+  }, []);
+
 
   const bankRow = (b: Bundle) => {
     const active = b.session && !b.session.isFinished;
     const last = Object.values(b.bank.stats).map(s => s.lastAttemptAt ?? '').sort().at(-1);
     return <tr className="bank-row" key={b.bank.id}>
       <td><div className="bank-name-cell"><FileText size={20} /><button className="bank-name" onClick={() => detail(b.bank.id)}>{b.bank.name}</button></div></td>
-      <td className="numeric">{b.bank.questions.length}</td>
-      <td className="numeric"><button className={wrongCount(b) ? 'wrong-count' : 'muted'} onClick={() => detail(b.bank.id, 'wrong')}>{wrongCount(b)}</button></td>
+      <td className="numeric" data-label="题目">{b.bank.questions.length}</td>
+      <td className="numeric" data-label="错题"><button className={wrongCount(b) ? 'wrong-count' : 'muted'} onClick={() => detail(b.bank.id, 'wrong')}>{wrongCount(b)}</button></td>
       <td className="last-practiced">{dateLabel(last)}</td>
       <td><div className="row-actions bank-actions">
         <button className="secondary" disabled={!b.bank.questions.length} title={active ? `上次学到 ${b.session!.currentIndex + 1} / ${b.session!.questionIds.length}` : undefined} onClick={() => { if (active) navigate({ type: 'practice', id: b.bank.id }); else start(b.bank.id); }}>{active ? '继续练习' : '开始练习'}</button>
@@ -218,7 +252,7 @@ export default function App() {
   };
   const combinedSave = saveState === 'error' || preferences.status === 'error' ? 'error' : saveState === 'pending' || preferences.status === 'pending' ? 'pending' : 'saved';
 
-  return <div className="app-shell">
+  return <div className={`app-shell${isAndroid ? ' native-app' : ''}`} data-route={route.type} data-practice-focus={isAndroid && keyboardVisible && route.type === 'practice' && !!current?.session && !current.session.isFinished ? 'true' : undefined}>
     <header className="app-header">
       <button className="brand" onClick={() => navigate({ type: 'home' })}><Leaf size={24} />RecallMate</button>
       <nav className="main-nav" aria-label="主导航">
@@ -226,10 +260,10 @@ export default function App() {
         <button className={route.type === 'wrong' ? 'active' : ''} onClick={() => navigate({ type: 'wrong' })}>错题{totalWrong > 0 && <span>{totalWrong}</span>}</button>
       </nav>
       <div className="header-right">
-        {!window.recallmate && <span className="preview-badge">浏览器预览</span>}
+        {isPreview && <span className="preview-badge">浏览器预览</span>}
         <FontControls settings={preferences.settings} ready={preferences.ready} change={preferences.change} reset={preferences.reset} error={preferences.error} />
         <button className="header-tool help-tool" aria-label="使用指南" title="使用指南" onClick={() => setInfo('help')}><HelpCircle size={18} /></button>
-        <button className="header-tool" onClick={() => setInfo('settings')}><Settings2 size={17} />设置</button>
+        <button className="header-tool" aria-label="设置" onClick={() => setInfo('settings')}><Settings2 size={17} />设置</button>
       </div>
     </header>
     <main className={route.type === 'practice' ? 'main-content practice-main' : 'main-content'}>
@@ -242,7 +276,7 @@ export default function App() {
         {bundles.length ? <div className="bank-table-container"><table className="bank-table data-table"><colgroup><col /><col className="bank-count-column" /><col className="bank-count-column" /><col className="bank-date-column last-practiced" /><col className="bank-actions-column" /></colgroup><thead><tr><th>题库名称</th><th className="numeric">题目</th><th className="numeric">错题</th><th className="last-practiced">最近练习</th><th className="actions-heading">操作</th></tr></thead>
           <tbody>{bundles.filter(b => b.bank.name.toLowerCase().includes(search.toLowerCase())).map(bankRow)}</tbody>
         </table>{search && !bundles.some(b => b.bank.name.toLowerCase().includes(search.toLowerCase())) && <div className="empty-state">没有找到匹配的题库</div>}</div> : <section className="first-bank empty-state"><BookOpen size={32} /><h2>暂无题库</h2><p>导入自己的题库，或先体验示例题。</p><div className="button-row"><button className="secondary" onClick={() => setImportText(sampleText)}>体验示例题库</button><button className="text-button" onClick={() => void choose()}>从文件导入</button></div></section>}
-      </> : route.type === 'practice' && current?.session ? <PracticePage bundle={current} fontSize={preferences.settings.practiceFontSize} dispatch={(action, debounce) => { const b = data.current.find(x => x.bank.id === current.bank.id)!; update(practiceAction(b, action), debounce); }} exit={() => detail(current.bank.id)} restart={(mode, ids) => start(current.bank.id, mode, ids, true)} /> : route.type === 'detail' && current ? (() => {
+      </> : route.type === 'practice' && current?.session ? <PracticePage bundle={current} fontSize={preferences.settings.practiceFontSize} shortcuts={preferences.settings.shortcuts} dispatch={(action, debounce) => { const b = data.current.find(x => x.bank.id === current.bank.id)!; update(practiceAction(b, action), debounce); }} exit={() => detail(current.bank.id)} restart={(mode, ids) => start(current.bank.id, mode, ids, true)} /> : route.type === 'detail' && current ? (() => {
         const questions = (detailTab === 'wrong' ? sortWrongQuestions(current.bank, recentSort) : current.bank.questions).filter(q => q.sourceText.toLowerCase().includes(search.toLowerCase()));
         const currentPage = Math.min(page, Math.max(1, Math.ceil(questions.length / 10)));
         return <>
@@ -264,7 +298,7 @@ export default function App() {
         {totalWrong > 0 && !bundles.some(b => sortWrongQuestions(b.bank).some(q => q.sourceText.toLowerCase().includes(search.toLowerCase()))) && <div className="empty-state">没有匹配的错题</div>}
       </> : <div className="empty-state"><p>题库不存在或练习进度已清除。</p><button className="primary" onClick={() => navigate({ type: 'home' })}>返回题库</button></div>}
     </main>
-    <footer className="app-footer"><span>v0.1.4</span><button className={`save-indicator ${combinedSave}`} onClick={() => { if (combinedSave === 'error') void run(async () => { if (preferences.status === 'error') preferences.retry(); await preferences.flush(); await flushPending(); await flushSaves(); }); }}>
+    <footer className="app-footer"><span>{appVersion}</span><button className={`save-indicator ${combinedSave}`} onClick={() => { if (combinedSave === 'error') void run(async () => { if (preferences.status === 'error') preferences.retry(); await preferences.flush(); await flushPending(); await flushSaves(); }); }}>
       {combinedSave === 'saved' ? <CheckCircle2 size={15} /> : combinedSave === 'error' ? <HelpCircle size={15} /> : <Clock3 size={15} />}{combinedSave === 'saved' ? '已保存' : combinedSave === 'error' ? '重试保存' : '正在保存…'}
     </button></footer>
     {notice && <div className={`toast ${notice.error ? 'error' : ''}`} role={notice.error ? 'alert' : 'status'}>{notice.error ? <HelpCircle size={18} /> : <CheckCircle2 size={18} />}<span>{notice.message}</span><button aria-label="关闭消息" onClick={() => setNotice(null)}><X size={16} /></button></div>}
@@ -272,10 +306,11 @@ export default function App() {
     {editor && <EditorModal question={editor.question} close={() => setEditor(null)} save={saveQuestion} />}
     {rename && <Modal title="重命名题库" close={() => setRename(null)}><label className="field-label" htmlFor="rename-bank">题库名称</label><input id="rename-bank" className="text-input" value={rename.name} maxLength={120} onChange={e => setRename({ ...rename, name: e.target.value })} /><footer className="modal-footer"><span className="muted">题目与历史记录保留</span><button className="primary" disabled={!rename.name.trim()} onClick={() => { const b = data.current.find(x => x.bank.id === rename.id)!; update({ ...b, bank: { ...b.bank, name: rename.name.trim(), updatedAt: new Date().toISOString() } }); setRename(null); }}>保存名称</button></footer></Modal>}
     {info && <Modal title={info === 'help' ? '使用指南' : '设置'} close={() => setInfo(null)} wide>
-      {info === 'help' ? <div className="guide-content"><h3>题库格式</h3><p>使用 UTF-8 的 TXT 或 Markdown，用双花括号标记答案，独占一行的 --- 分隔题目，| 分隔合法答案。</p><pre>{'# 生物学复习\n\n光合作用发生在{{叶绿体}}中。\n\n---\n\n水的化学式为{{H₂O|H2O}}。'}</pre><h3>练习操作</h3><p>Enter 判定当前空，全部正确后再按 Enter 切题。按住“答案”临时查看；“提示”补一个字符；“放弃”补全本题；“跳过”直接切题。</p><p>按 Enter 后，匹配的文字显示绿色，不匹配的文字显示红色，缺失内容不直接显示答案。顿号或“和”连接的并列内容支持换序，也支持混合连接；单个空内和多个空之间均可换序，每项只能使用一次。“和平”等词中的“和”保持原义，有歧义时请在连接词“和”两侧添加空格。其他大小写和符号仍严格匹配；未完全通过的提交仍计入本次错题，纯跳过不加入错题本。</p><button className="secondary" onClick={() => { setInfo(null); setImportText(sampleText); }}>导入示例题库</button></div> : <div className="settings-content">
-        <section><h3>数据位置</h3><p className="data-path">{dataPath}</p><p className="muted">题库、进度、缓存和字号设置都保存在便携文件夹的 data 中。移动时请复制整个软件文件夹。</p><button className="secondary" disabled={!window.recallmate} onClick={() => void run(() => storage.openDataDirectory())}><FolderOpen size={16} />打开数据目录</button></section>
-        <section><h3>备份与恢复</h3><p>在题库“更多”菜单或详情中导出 JSON，备份保存在 data/exports，包含题目、统计与当前进度。</p><button className="secondary" onClick={() => { setInfo(null); void choose(); }}><Upload size={16} />从 JSON 恢复</button></section>
+      {info === 'help' ? <div className="guide-content"><h3>题库格式</h3><p>使用 UTF-8 的 TXT 或 Markdown，用双花括号标记答案，独占一行的 --- 分隔题目，| 分隔合法答案。</p><pre>{'# 生物学复习\n\n光合作用发生在{{叶绿体}}中。\n\n---\n\n水的化学式为{{H₂O|H2O}}。'}</pre><h3>练习操作</h3><p>默认 Enter 判定当前空，全部正确后再按 Enter 切题；Windows 可在设置中修改答题快捷键。按住“答案”临时查看；“提示”补一个字符；“放弃”补全本题；“跳过”直接切题。</p><p>按 Enter 后，匹配的文字显示绿色，不匹配的文字显示红色，缺失内容不直接显示答案。顿号或“和”连接的并列内容支持换序，也支持混合连接；单个空内和多个空之间均可换序，每项只能使用一次。“和平”等词中的“和”保持原义，有歧义时请在连接词“和”两侧添加空格。其他大小写和符号仍严格匹配；未完全通过的提交仍计入本次错题，纯跳过不加入错题本。</p><button className="secondary" onClick={() => { setInfo(null); setImportText(sampleText); }}>导入示例题库</button></div> : <div className="settings-content">{isDesktop && <ShortcutSettings value={preferences.settings.shortcuts} ready={preferences.ready} status={preferences.status} error={preferences.error} save={shortcuts => preferences.change({ shortcuts })} />}
+        <section><h3>数据位置</h3><p className="data-path">{dataPath}</p><p className="muted">{isAndroid ? '题库、进度和字号保存在本机应用私有目录。卸载或清除应用数据前，请先导出备份。' : '题库、进度、缓存、字号和快捷键设置都保存在便携文件夹的 data 中。移动时请复制整个软件文件夹。'}</p>{isDesktop && <button className="secondary" onClick={() => void run(() => storage.openDataDirectory())}><FolderOpen size={16} />打开数据目录</button>}</section>
+        <section><h3>备份与恢复</h3><p>{isAndroid ? '在题库“更多”菜单或详情中导出 JSON，并在系统窗口选择保存位置。备份包含题目、统计和当前进度，也可在 Windows 版恢复。' : '在题库“更多”菜单或详情中导出 JSON，备份保存在 data/exports，包含题目、统计与当前进度。'}</p><button className="secondary" onClick={() => { setInfo(null); void choose(); }}><Upload size={16} />从 JSON 恢复</button></section>
         <section><h3>自动保存</h3><p>输入停止 400ms 后保存，判题与切题立即保存。每个题库保留上一份有效备份，损坏文件会保留。</p></section>
+        {isAndroid && <section><h3>使用指南</h3><button className="secondary" onClick={() => setInfo('help')}><HelpCircle size={16} />查看题库格式与练习操作</button></section>}
       </div>}
     </Modal>}
     {confirm && <Modal title={confirm.title} close={() => { if (!confirmBusy) setConfirm(null); }}><p className="confirm-message">{confirm.message}</p><footer className="modal-footer"><span /><div className="button-row"><button className="secondary" disabled={confirmBusy} onClick={() => setConfirm(null)}>取消</button><button className={confirm.danger ? 'danger' : 'primary'} disabled={confirmBusy} onClick={() => { setConfirmBusy(true); void run(async () => { await confirm.action(); setConfirm(null); }).finally(() => setConfirmBusy(false)); }}>{confirmBusy ? '正在处理…' : confirm.label ?? '确认'}</button></div></footer></Modal>}

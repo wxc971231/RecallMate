@@ -15,7 +15,17 @@ function managedName(name) {
 async function inspectRelease(workspace, release) {
   const workspaceReal = await fs.realpath(workspace);
   inside(workspaceReal, await fs.realpath(release));
-  const entries = await fs.readdir(release, { withFileTypes: true });
+  const allEntries = await fs.readdir(release, { withFileTypes: true });
+  const entries = [];
+  for (const entry of allEntries) {
+    if (entry.name === 'android' && entry.isDirectory()) {
+      const target = inside(release, path.join(release, entry.name));
+      if ((await fs.lstat(target)).isSymbolicLink()) throw new Error('Refusing linked Android distribution directory');
+      inside(release, await fs.realpath(target));
+      continue;
+    }
+    entries.push(entry);
+  }
   for (const entry of entries) {
     if (!managedName(entry.name)) throw new Error(`Unrecognized release file; retained without modification: ${entry.name}`);
     const checked = inside(release, path.join(release, entry.name));

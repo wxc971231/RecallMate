@@ -1,6 +1,8 @@
 import { validateBundle } from '../domain/banks';
 import type { Bundle, DesktopAPI } from '../domain/types';
 import { defaultSettings, validateSettings } from '../domain/settings';
+import { isAndroid } from './platform';
+import { createAndroidStorage } from './androidStorage';
 declare global { interface Window { recallmate?: DesktopAPI } }
 
 // The browser preview uses its own local storage; the desktop always uses JSON files via IPC.
@@ -33,7 +35,7 @@ const browserAPI: DesktopAPI = {
   async openDataDirectory() { throw new Error('请在桌面版中打开数据目录'); },
   onBeforeClose: () => () => {},
 };
-export const storage = window.recallmate ?? browserAPI;
+export const storage = isAndroid ? createAndroidStorage() : window.recallmate ?? browserAPI;
 
 let queue = Promise.resolve();
 const failures = new Map<string, unknown>();

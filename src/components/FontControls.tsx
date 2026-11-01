@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Minus, Plus, RotateCcw, Type, X } from 'lucide-react';
 import { fontLimits, type AppSettings } from '../domain/settings';
+import { isAndroid } from '../services/platform';
 
 export function FontControls({ settings, ready, change, reset, error }: {
   settings: AppSettings; ready: boolean; change(patch: Partial<AppSettings>): void; reset(): void; error: string;
@@ -29,7 +30,7 @@ export function FontControls({ settings, ready, change, reset, error }: {
             <input id={name} aria-label={label} type="range" min={limits.min} max={limits.max} step={1} value={settings[name]} onChange={event => change({ [name]: Number(event.target.value) })} />
             <button aria-label={`增大${label}`} disabled={settings[name] >= limits.max} onClick={() => change({ [name]: settings[name] + 1 })}><Plus size={16} /></button></div></div>;
       })}
-      <div className="font-preview">预览：输入答案，按 Enter 确认。</div>
+      <div className="font-preview">{isAndroid ? '预览：输入答案，点击确认。' : '预览：输入答案，按 Enter 确认。'}</div>
       {error && <p className="inline-error" role="alert">{error}</p>}
       <button className="text-button" onClick={reset}><RotateCcw size={14} />恢复默认字号</button>
     </section>}

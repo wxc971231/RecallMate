@@ -1,6 +1,6 @@
 {
   "name": "recallmate",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "离线填空背诵工具",
   "author": "RecallMate",
   "private": true,
@@ -14,14 +14,26 @@
     "test:desktop": "electron scripts/test-desktop.cjs",
     "build": "npm run typecheck && electron-vite build",
     "dist": "npm run build && electron-builder --win dir --x64 && node scripts/package-folder.cjs",
-    "web": "vite --config vite.web.config.ts --host 127.0.0.1"
+    "web": "vite --config vite.web.config.ts --host 127.0.0.1",
+    "build:android:web": "npm run typecheck && vite build --config vite.android.config.ts",
+    "android:sync": "npm run build:android:web && cap sync android",
+    "android:open": "cap open android",
+    "android:apk": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-android.ps1",
+    "test:android": "node scripts/test-android.cjs",
+    "test:android:release": "node scripts/test-android-release.cjs",
+    "test:android:keyboard": "node scripts/test-android-keyboard.cjs"
   },
   "dependencies": {
+    "@capacitor/android": "8.6.0",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.6.0",
+    "@capacitor/keyboard": "8.0.6",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.6.0",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
@@ -36,9 +48,28 @@
   "build": {
     "appId": "com.recallmate.desktop",
     "productName": "RecallMate",
-    "directories": { "output": ".cache/build" },
-    "files": ["out/**/*", "package.json"],
-    "extraResources": [{ "from": "examples", "to": "examples" }],
-    "win": { "target": ["dir"], "icon": "build/icon.ico", "signExecutable": false }
+    "directories": {
+      "output": ".cache/build"
+    },
+    "files": [
+      "out/main/**/*",
+      "out/preload/**/*",
+      "out/renderer/**/*",
+      "package.json",
+      "!node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "examples",
+        "to": "examples"
+      }
+    ],
+    "win": {
+      "target": [
+        "dir"
+      ],
+      "icon": "build/icon.ico",
+      "signExecutable": false
+    }
   }
 }

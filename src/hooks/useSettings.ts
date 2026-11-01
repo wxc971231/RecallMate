@@ -14,7 +14,7 @@ export function useSettings() {
   const dirty = useRef(false);
   useEffect(() => {
     void storage.loadSettings().then(result => { current.current = result.settings; setSettings(result.settings); setWarning(result.warning ?? ''); setReady(true); })
-      .catch(reason => { setWarning('字号设置读取失败：' + String(reason)); setReady(true); });
+      .catch(reason => { setWarning('设置读取失败：' + String(reason)); setReady(true); });
   }, []);
   useLayoutEffect(() => {
     document.documentElement.style.fontSize = `${settings.uiFontSize}px`;
@@ -27,8 +27,8 @@ export function useSettings() {
     const task = queue.current.catch(() => {}).then(() => storage.saveSettings(next));
     queue.current = task;
     task.then(() => { if (ownRevision === revision.current) { dirty.current = false; setStatus('saved'); } })
-      .catch(reason => { if (ownRevision === revision.current) { setStatus('error'); setError('字号保存失败：' + (reason instanceof Error ? reason.message : String(reason))); } });
+      .catch(reason => { if (ownRevision === revision.current) { setStatus('error'); setError('设置保存失败：' + (reason instanceof Error ? reason.message : String(reason))); } });
   };
-  const flush = async () => { await queue.current; if (dirty.current) throw new Error('字号设置尚未保存，请重试'); };
-  return { settings, ready, status, error, warning, change, reset: () => change({ ...defaultSettings }), retry: () => change({}), flush };
+  const flush = async () => { await queue.current; if (dirty.current) throw new Error('设置尚未保存，请重试'); };
+  return { settings, ready, status, error, warning, change, reset: () => change({ uiFontSize: defaultSettings.uiFontSize, practiceFontSize: defaultSettings.practiceFontSize }), retry: () => change({}), flush };
 }

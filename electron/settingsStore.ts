@@ -14,8 +14,8 @@ export class SettingsStore {
     try { return { settings: await this.read(this.path) }; }
     catch (error: any) {
       if (error.code === 'ENOENT') return { settings: { ...defaultSettings } };
-      try { return { settings: await this.read(`${this.path}.bak`), warning: '字号设置已从上一份备份恢复。' }; }
-      catch { return { settings: { ...defaultSettings }, warning: '字号设置无法读取，暂用默认字号；原文件保留。' }; }
+      try { return { settings: await this.read(`${this.path}.bak`), warning: '设置已从上一份备份恢复。' }; }
+      catch { return { settings: { ...defaultSettings }, warning: '设置无法读取，暂用默认设置；原文件保留。' }; }
     }
   }
   save(input: unknown): Promise<void> {

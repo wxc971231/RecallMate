@@ -9,6 +9,11 @@ let root: string;
 beforeEach(async () => { root = await mkdtemp(join(tmpdir(), 'recallmate-settings-test-')); });
 afterEach(async () => { const checked = resolve(root); if (!checked.startsWith(resolve(tmpdir()) + sep) || !checked.split(sep).at(-1)!.startsWith('recallmate-settings-test-')) throw new Error('Unexpected cleanup directory'); await rm(checked, { recursive: true, force: true }); });
 describe('字号设置', () => {
+  it('快捷键与字号一并保存，重开后恢复自定义和停用项', async () => {
+    const settings={...defaultSettings,shortcuts:{...defaultSettings.shortcuts,hint:'Ctrl+H',skip:null}};
+    await new SettingsStore(root).save(settings);
+    expect((await new SettingsStore(root).load()).settings).toEqual(settings);
+  });
   it('新用户使用默认字号，不会主动写文件', async () => { const store = new SettingsStore(root); expect((await store.load()).settings).toEqual(defaultSettings); expect(await readdir(root)).toEqual([]); });
   it.each([{ uiFontSize: 11 }, { uiFontSize: 21 }, { practiceFontSize: 17 }, { practiceFontSize: 41 }, { uiFontSize: 14.5 }, { schemaVersion: 2 }])('拒绝无效设置 %j', patch => expect(() => validateSettings({ ...defaultSettings, ...patch })).toThrow());
   it('快速调节串行保存，最后的字号可被新实例恢复', async () => { const store = new SettingsStore(root); await Promise.all([28, 32, 40].map(practiceFontSize => store.save({ ...defaultSettings, uiFontSize: 20, practiceFontSize }))); expect((await new SettingsStore(root).load()).settings).toMatchObject({ uiFontSize: 20, practiceFontSize: 40 }); expect(JSON.parse(await readFile(join(root, 'app-settings.json.bak'), 'utf8')).practiceFontSize).toBe(32); });

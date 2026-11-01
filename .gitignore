@@ -2,5 +2,15 @@ node_modules/
 out/
 release/
 .cache/
+.local/
 artifacts/
 *.log
+android/.gradle/
+android/.idea/
+android/**/build/
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor*.json
+*.jks
+*.keystore
+android/signing.properties

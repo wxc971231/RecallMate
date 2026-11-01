@@ -9,6 +9,14 @@
       "problemMatcher": [],
       "isBackground": true,
       "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "RecallMate: 构建安卓 APK（7890 代理）",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/build-android.ps1", "-Proxy", "http://localhost:7890"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
     }
   ]
 }

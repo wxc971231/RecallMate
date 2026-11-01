@@ -1,18 +1,21 @@
 # RecallMate
 
-离线填空背诵工具，Windows x64 文件夹便携版，版本 0.1.4。
+离线填空背诵工具。Windows x64 文件夹便携版 0.1.5；Android 版 0.1.2。
+
+安卓开发与构建说明见 [_doc/RecallMate_Android.md](_doc/RecallMate_Android.md)。两端共用题库格式、判题规则和统计逻辑，使用 JSON 备份手动迁移数据。
 
 ## 直接体验
 
 构建后的文件位于 `release/`：
 
-- `RecallMate-0.1.4-Portable/RecallMate.exe`：双击启动，保留整个文件夹。
-- `RecallMate-0.1.4-Portable.zip`：干净的发布压缩包，解压后使用，不含个人题库。
+- `RecallMate-0.1.5-Portable/RecallMate.exe`：双击启动，保留整个文件夹。
+- `RecallMate-0.1.5-Portable.zip`：干净的发布压缩包，解压后使用，不含个人题库。
 - `SHA256SUMS.txt`：当前发布 ZIP 的 SHA-256 校验值。
+- `android/RecallMate-Android-0.1.2.apk`：安卓安装包，附独立校验值和使用说明。
 
-今后只分发文件夹便携版，不生成安装版或自解压 EXE。`release/` 只保留当前版本的上述三个发布项；构建中间产物放在 `.cache/build/`。重新发布前，旧发布目录中的 `data` 会先完整备份到 `.cache/release-data-backups/`，发布文件夹与 ZIP 都保持干净。请将实际使用的软件复制到独立位置，避免把 `release/` 当作日常题库存储目录。
+Windows 版只分发文件夹便携版，不生成安装版或自解压 EXE。`release/` 根目录只保留当前 Windows 版本的上述三个发布项；安卓产物独立放在 `release/android/`，两种发布脚本分别管理自己的文件。Windows 构建中间产物放在 `.cache/build/`。重新发布前，旧发布目录中的 `data` 会先完整备份到 `.cache/release-data-backups/`，发布文件夹与 ZIP 都保持干净。请将实际使用的软件复制到独立位置，避免把 `release/` 当作日常题库存储目录。
 
-无需安装 Node.js，无需启动服务器，运行时不需要网络。首版尚未进行发布者代码签名。
+无需安装 Node.js，无需启动服务器，运行时不需要网络。Windows EXE 尚未进行发布者代码签名；安卓 APK 使用本机开发者密钥签名。
 
 打开应用后，点击“体验示例题库”，确认导入 20 道综合知识题，即可开始练习。也可以导入 `examples/综合知识示例.md` 或自己的题库。示例题由常见知识点组成，未声称来源于真实考试。
 
@@ -20,6 +23,7 @@
 
 - 简洁界面：顶部导航、题库表格、题目分页列表；练习页只保留题目、进度与底部操作，去除口号、插画、头像与统计卡片。
 - 顶部“字号”：界面字号 12–20px、练习字号 18–40px 分别调整，支持滑块、加减和恢复默认；默认分别为 14px、24px。题目、输入框和提示字符同步缩放，自动保存，重开仍生效。
+- Windows“设置 → 答题快捷键”：默认 F1 按住查看答案、F2 提示、Shift+F3 放弃、F4 跳过、Enter 确认／下一题。支持改键、单独停用、冲突检测和恢复默认；只在答题页面生效，输入法选词、弹窗与字号调整期间暂停，长按不连续触发。设置保存在便携目录内，旧版字号设置自动兼容，恢复默认字号会保留快捷键。
 - UTF-8 Markdown/TXT 导入、粘贴导入、错误行号、导入前预览。
 - 题库搜索、重命名、删除；题目搜索、新增、编辑、删除。
 - 顺序、随机、单题、从指定题开始、错题本、本轮错题重练。
@@ -68,7 +72,7 @@ Enter 提交当前空，并聚焦第一个未答对的空。全部正确后保�
 所有打包版本都以 EXE 所在文件夹为根目录，应用管理的可写数据统一放在旁边的 `data/`。通过“设置 → 打开数据目录”查看实际路径：
 
 ```text
-RecallMate-0.1.4-Portable/
+RecallMate-0.1.5-Portable/
   RecallMate.exe
   resources/                 # 应用与示例题库
   ...                        # Electron 所需的 DLL、资源与许可证，请保留
@@ -81,8 +85,8 @@ RecallMate-0.1.4-Portable/
     logs/                    # 日志
     crashes/                 # 崩溃转储
     exports/                 # 手动导出的 JSON 备份
-    app-settings.json        # 界面字号与练习字号，含版本号
-    app-settings.json.bak    # 上一份有效的字号设置
+    app-settings.json        # 界面字号、练习字号与 Windows 快捷键，含版本号
+    app-settings.json.bak    # 上一份有效设置
 ```
 
 每份 JSON 是 `{ schemaVersion: 1, bank, session? }`，题库、统计和当前进度处于同一个文件内，避免跨文件保存一半的情况。输入停止 400ms 后保存；判题、提示、切题和管理操作立即保存；关闭窗口会等待保存完成。页面右上角会显示保存状态，保存失败时保留窗口、重试保存。
@@ -98,7 +102,7 @@ RecallMate-0.1.4-Portable/
 0.1.0 的 `%APPDATA%/RecallMate/` 数据不会被新版自动读取或删除。迁移时先关闭旧版，再把旧目录里的 `banks`、`backups` 复制到便携版的 `data`。本机可使用以下只复制、不删除源文件、不覆盖已有不同文件的迁移工具：
 
 ```powershell
-node scripts/migrate-local-data.cjs "$env:APPDATA/RecallMate" "release/RecallMate-0.1.4-Portable"
+node scripts/migrate-local-data.cjs "$env:APPDATA/RecallMate" "release/RecallMate-0.1.5-Portable"
 ```
 
 发布脚本先在 `.cache/` 准备完整的干净文件夹与 ZIP，再备份旧发布目录内的数据并清理旧发布项，最后发布当前版本。不会将个人题库打进发布包。发现未知文件、链接目录或正在从 `release/` 运行的应用时会停止，避免误删或替换使用中的文件。浏览器预览独立使用浏览器本地存储，与桌面版相互隔离，不属于此文件夹便携模式。
@@ -106,10 +110,10 @@ node scripts/migrate-local-data.cjs "$env:APPDATA/RecallMate" "release/RecallMat
 从 0.1.1 等旧便携版升级时，请先关闭旧版，把旧软件的 `data` 作为迁移来源，例如：
 
 ```powershell
-node scripts/migrate-local-data.cjs "C:/Users/PC/Desktop/RecallMate-0.1.1-Portable/data" "release/RecallMate-0.1.4-Portable"
+node scripts/migrate-local-data.cjs "C:/Users/PC/Desktop/RecallMate-0.1.1-Portable/data" "release/RecallMate-0.1.5-Portable"
 ```
 
-迁移工具只复制题库、自动备份及已有的字号设置；保留原文件，不覆盖新版中内容不同的文件。不要以发布 ZIP 替换自己的整个 `data`。
+迁移工具只复制题库、自动备份及已有的应用设置；保留原文件，不覆盖新版中内容不同的文件。不要以发布 ZIP 替换自己的整个 `data`。
 
 ## 开发与构建
 
@@ -142,6 +146,8 @@ npm.cmd run dist         # Windows x64 文件夹便携版与干净 ZIP
 
 核心测试覆盖解析错误、多答案、严格匹配、Unicode、字符来源、重复结算、完成后修改、跳过规则、20 题完整流程、恢复、并发写入、备份与损坏保护。桌面测试覆盖真实 sandbox/preload/IPC、导入、自动聚焦、判题、模拟 IME 事件、按住答案、提示、放弃、持久化、页面重载和最小窗口布局。
 
-0.1.2 新增字号范围校验、快速调节的串行保存、异常设置恢复；桌面检查包含字号实时应用、题目与输入框同步缩放、字号持久化、恢复默认、分页、最大字号下最小窗口的布局和操作可见性，以及调节字号前后作答状态不变。
+Windows 0.1.2 新增字号范围校验、快速调节的串行保存、异常设置恢复；桌面检查包含字号实时应用、题目与输入框同步缩放、字号持久化、恢复默认、分页、最大字号下最小窗口的布局和操作可见性，以及调节字号前后作答状态不变。
 
-真实微软拼音/搜狗输入法的选词时序、触屏手势以及不同 DPI 仍建议人工体验验证；当前自动测试使用合成的组合输入事件。尚未实现 Android、云同步、OCR、AI 判题或自动更新，这些也不属于本次首版范围。
+当前版本已通过 157 项单元测试、87 项桌面检查，以及安卓原生流程 21 项、键盘交互 21 项、正式签名包覆盖升级 4 项检查。Windows 0.1.5 的快捷键检查包含改键持久化、冲突检测、停用、长按保护、输入法和弹窗隔离；Android 0.1.2 的键盘检查包含导航收起恢复、长题滚动、短题多空显示和必要判题反馈。
+
+真实微软拼音/搜狗输入法的选词时序、各厂商手机输入法及不同 DPI 仍建议人工体验验证。安卓测试覆盖模拟器中的原生存储、文件选择器、软键盘、后台保存与重启恢复。尚未实现云同步、OCR、AI 判题或自动更新。

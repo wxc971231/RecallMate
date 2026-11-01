@@ -50,13 +50,18 @@ async function fill(label, value) {
 }
 async function enter() { target.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Return' }); target.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Return' }); await delay(100); }
 async function screenshot(name) {
-  const image = await target.webContents.capturePage();
+  let image;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try { image = await target.webContents.capturePage(); break; }
+    catch (error) { if (!String(error).includes('UnknownVizError') || attempt === 3) throw error; target.webContents.invalidate(); await delay(120); }
+  }
   await fs.mkdir(path.join(root, 'artifacts'), { recursive: true });
   await fs.writeFile(path.join(root, 'artifacts', name), image.toPNG());
 }
 
 app.on('browser-window-created', (_event, win) => {
   target = win;
+  win.webContents.setBackgroundThrottling(false);
   win.webContents.on('console-message', event => { if (event.level === 'error') console.error('Renderer:', event.message); });
   win.webContents.once('did-finish-load', async () => {
     try {
@@ -199,6 +204,7 @@ app.on('browser-window-created', (_event, win) => {
       await enter(); await until('document.querySelector(".summary-card") !== null', 'matching summary');
       const matching = (await evaluate('window.recallmate.load()')).bundles.find(b => b.bank.name === '匹配规则测试');
       check(Object.values(matching.bank.stats).reduce((sum, s) => sum + s.wrongAttemptCount, 0) === 3, 'Partial and incomplete submissions retain once-per-attempt wrong statistics');
+      await require('./test-desktop-shortcuts.cjs')({ evaluate, click, clickAria, fill, until, delay, screenshot, check, target });
       await until('document.querySelector(".save-indicator").textContent.includes("已保存")', 'save complete');
       console.log(`Desktop smoke completed: ${assertions} assertions. Profile: ${profile}`);
       await fs.writeFile(path.join(root, 'artifacts', 'desktop-test-result.json'), JSON.stringify({ assertions, profile, passed: true }, null, 2));
@@ -212,4 +218,4 @@ app.on('browser-window-created', (_event, win) => {
   });
 });
 require(path.join(process.env.RECALLMATE_PACKAGED_ROOT || root, 'out/main/index.js'));
-setTimeout(() => { console.error('Desktop test timeout'); app.exit(1); }, 60000).unref();
+setTimeout(() => { console.error('Desktop test timeout'); app.exit(1); }, 90000).unref();
