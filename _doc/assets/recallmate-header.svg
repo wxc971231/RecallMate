@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title description">
+  <title id="title">RecallMate</title>
+  <desc id="description">离线填空背诵工具。深绿渐变背景、绿叶图标与居中的 RecallMate 标题。</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#101f23"/><stop offset=".55" stop-color="#123c34"/><stop offset="1" stop-color="#172b32"/>
+    </linearGradient>
+    <radialGradient id="glow"><stop stop-color="#58d8a6" stop-opacity=".19"/><stop offset="1" stop-color="#58d8a6" stop-opacity="0"/></radialGradient>
+    <linearGradient id="wordmark" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#f3fff9"/><stop offset="1" stop-color="#8fe9bf"/></linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#4ea888" stop-opacity=".25"/><stop offset="1" stop-color="#2c6258" stop-opacity=".08"/></linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#9edec4" stroke-opacity=".045"/></pattern>
+    <clipPath id="corners"><rect width="1200" height="360" rx="20"/></clipPath>
+  </defs>
+  <g clip-path="url(#corners)">
+    <rect width="1200" height="360" fill="url(#background)"/>
+    <rect width="1200" height="360" fill="url(#grid)"/>
+    <ellipse cx="600" cy="115" rx="400" ry="300" fill="url(#glow)"/>
+    <g fill="none" stroke="#8cceae" stroke-opacity=".12">
+      <circle cx="600" cy="110" r="168"/><circle cx="600" cy="110" r="220"/>
+      <path d="M0 278H150L205 223H305M895 138H1000L1056 82H1200"/>
+      <circle cx="305" cy="223" r="4" fill="#8cceae"/><circle cx="895" cy="138" r="4" fill="#8cceae"/>
+    </g>
+    <g transform="translate(135 105) rotate(-9 65 55)">
+      <rect width="130" height="110" rx="16" fill="url(#tile)" stroke="#94dfbb" stroke-opacity=".22"/>
+      <text x="65" y="67" text-anchor="middle" font-family="Consolas,monospace" font-size="35" fill="#a2e7c7" opacity=".5">{ _ }</text>
+    </g>
+    <g transform="translate(960 162) rotate(10 47 44)">
+      <rect width="94" height="88" rx="16" fill="url(#tile)" stroke="#94dfbb" stroke-opacity=".22"/>
+      <path d="m28 45 13 13 25-28" fill="none" stroke="#a2e7c7" stroke-opacity=".5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <rect x="558" y="38" width="84" height="84" rx="23" fill="#2c7a5f" stroke="#91dfb6" stroke-opacity=".4"/>
+    <g transform="translate(561 41) scale(.305)" fill="none" stroke="#e1ffed" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M64 177C43 112 98 71 195 49C202 146 151 194 69 179M55 205C75 169 106 140 146 110"/>
+    </g>
+    <text x="600" y="209" text-anchor="middle" fill="url(#wordmark)" font-family="Segoe UI,Arial,sans-serif" font-size="76" font-weight="700" letter-spacing="-2.6">RecallMate</text>
+    <text x="600" y="253" text-anchor="middle" fill="#b6d6c8" font-family="Segoe UI,Microsoft YaHei,sans-serif" font-size="23" letter-spacing="5">离线填空背诵工具</text>
+    <path d="M438 292H460M740 292H762" stroke="#8fe9bf" stroke-opacity=".35"/>
+    <text x="600" y="298" text-anchor="middle" fill="#8fb5a5" font-family="Segoe UI,Microsoft YaHei,sans-serif" font-size="15">Markdown → 填空练习 → 错题复习</text>
+    <rect x=".5" y=".5" width="1199" height="359" rx="20" fill="none" stroke="#80bb9f" stroke-opacity=".15"/>
+  </g>
+</svg>
