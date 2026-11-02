@@ -78,7 +78,8 @@ function key(text: string): string {
   const items = enumeration(text);
   return items ? `list:${JSON.stringify(items.sort())}` : `text:${text.trim()}`;
 }
-export function matchesAnswer(input: string, accepted: string[]): boolean {
+export function matchesAnswer(input: string, accepted: string[], strictBlankOrder = false): boolean {
+  if (strictBlankOrder) return accepted.some(target => input.trim() === target.trim());
   const value = key(input);
   return accepted.some(target => key(target) === value);
 }
@@ -183,10 +184,10 @@ function compareCandidate(input: string, target: string): AnswerComparison {
   };
 }
 
-export function compareAnswer(input: string, accepted: string[]): AnswerComparison {
+export function compareAnswer(input: string, accepted: string[], strictBlankOrder = false): AnswerComparison {
   let best: AnswerComparison | undefined;
   for (const target of accepted) {
-    const result = compareCandidate(input, target);
+    const result = strictBlankOrder ? compareText(input, target) : compareCandidate(input, target);
     if (result.correct) return result;
     if (!best || result.distance < best.distance) best = result;
   }
@@ -202,7 +203,8 @@ export function answerGroups(question: ParsedQuestion): number[][] {
   return groups;
 }
 
-export function assessBlanks(blanks: BlankState[], question: ParsedQuestion): BlankComparison[] {
+export function assessBlanks(blanks: BlankState[], question: ParsedQuestion, strictBlankOrder = false): BlankComparison[] {
+  if (strictBlankOrder) return blanks.map((blank, index) => ({ ...compareAnswer(blank.value, question.answers[index], true), targetIndex: index }));
   const results: BlankComparison[] = [];
   for (const group of answerGroups(question)) {
     const pairs = assign(group.map(i => ({ value: blanks[i].value, judged: blanks[i].status !== 'unjudged', confirmed: blanks[i].status === 'correct' })), group.map(i => question.answers[i]), compareAnswer);

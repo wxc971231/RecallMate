@@ -9,6 +9,14 @@ let root: string;
 beforeEach(async () => { root = await mkdtemp(join(tmpdir(), 'recallmate-settings-test-')); });
 afterEach(async () => { const checked = resolve(root); if (!checked.startsWith(resolve(tmpdir()) + sep) || !checked.split(sep).at(-1)!.startsWith('recallmate-settings-test-')) throw new Error('Unexpected cleanup directory'); await rm(checked, { recursive: true, force: true }); });
 describe('字号设置', () => {
+  it('严格模式开关持久化，保存字号与快捷键不会丢失该开关', async () => {
+    const store=new SettingsStore(root);
+    await store.save({...defaultSettings,strictBlankOrder:false,practiceFontSize:30});
+    const loaded=(await new SettingsStore(root).load()).settings;
+    expect(loaded.strictBlankOrder).toBe(false);
+    await store.save({...loaded,uiFontSize:18,shortcuts:{...loaded.shortcuts,hint:'F6'}});
+    expect((await new SettingsStore(root).load()).settings).toMatchObject({strictBlankOrder:false,practiceFontSize:30,uiFontSize:18});
+  });
   it('快捷键与字号一并保存，重开后恢复自定义和停用项', async () => {
     const settings={...defaultSettings,shortcuts:{...defaultSettings.shortcuts,hint:'Ctrl+H',skip:null}};
     await new SettingsStore(root).save(settings);

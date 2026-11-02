@@ -13,6 +13,7 @@ export interface Bank {
 }
 export interface Attempt {
   id: string; questionId: string; status: 'active' | 'completed' | 'abandoned' | 'skipped';
+  strictBlankOrder?: boolean;
   blanks: BlankState[]; activeBlankIndex: number; hadWrongSubmission: boolean;
   usedHint: boolean; viewedAnswer: boolean; gaveUp: boolean;
   startedAt: string; endedAt?: string; difficultyAt?: string; difficultyType?: string;

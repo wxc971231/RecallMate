@@ -57,6 +57,7 @@ export function validateBundle(value: unknown): Bundle {
       assert(stats(a.beforeStats) && date(a.startedAt) && (a.endedAt === undefined || date(a.endedAt)) && (a.difficultyAt === undefined || date(a.difficultyAt)), '作答统计或时间无效');
       assert(a.difficultyType === undefined || typeof a.difficultyType === 'string', '困难类型无效');
       assert(a.wrongBookDismissed === undefined || typeof a.wrongBookDismissed === 'boolean', '错题移出标记无效');
+      assert(a.strictBlankOrder === undefined || typeof a.strictBlankOrder === 'boolean', '填空顺序规则无效');
       assert(['hadWrongSubmission', 'usedHint', 'viewedAnswer', 'gaveUp'].every(k => typeof (a as any)[k] === 'boolean'), '作答标记无效');
       const parsed = parseQuestion(bank.questions.find((q: any) => q.id === a.questionId).sourceText);
       assert(Array.isArray(a.blanks) && a.blanks.length === parsed.answers.length && Number.isInteger(a.activeBlankIndex) && a.activeBlankIndex >= 0 && a.activeBlankIndex < a.blanks.length, '填空位置无效');

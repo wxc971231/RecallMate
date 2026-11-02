@@ -4,7 +4,7 @@ import { defaultSettings, validateSettings } from '../src/domain/settings';
 
 describe('Windows 答题快捷键', () => {
   it('默认使用功能键，放弃需要 Shift，确认仍为 Enter', () => expect(defaultShortcuts).toEqual({answer:'F1',hint:'F2',giveUp:'Shift+F3',skip:'F4',submit:'Enter'}));
-  it('旧版字号设置补齐快捷键，原字号不变', () => expect(validateSettings({schemaVersion:1,uiFontSize:18,practiceFontSize:36})).toEqual({schemaVersion:1,uiFontSize:18,practiceFontSize:36,shortcuts:defaultShortcuts}));
+  it('旧版字号设置补齐快捷键，原字号不变', () => expect(validateSettings({schemaVersion:1,uiFontSize:18,practiceFontSize:36})).toEqual({schemaVersion:1,uiFontSize:18,practiceFontSize:36,shortcuts:defaultShortcuts,strictBlankOrder:true}));
   it('组合键大小写和修饰键顺序标准化后再检查冲突', () => {
     expect(normalizeShortcut('shift + ctrl + h')).toBe('Ctrl+Shift+H');
     expect(()=>validateShortcuts({...defaultShortcuts,answer:'ctrl+shift+h',hint:'Shift+Ctrl+H'})).toThrow('同时用于');

@@ -161,7 +161,11 @@ app.on('browser-window-created', (_event, win) => {
       check(!methods.includes('fs') && !methods.includes('ipcRenderer'), 'Bridge exposes no unrestricted filesystem or IPC');
       check(networkRequests.length === 0, 'Production app works with all HTTP requests blocked');
       // A second bank exercises the new matching rules through the actual UI.
-      win.setContentSize(1180, 820); await click('题库'); await click('导入题库');
+      win.setContentSize(1180, 820); await click('设置');
+      check(await evaluate('document.querySelector("#strict-blank-order").checked && document.querySelector("#strict-blank-order").getAttribute("role") === "switch"'), 'Desktop strict fill mode defaults to enabled');
+      await evaluate('document.querySelector("#strict-blank-order").click()');
+      await until('document.querySelector(".save-indicator").textContent.includes("已保存")', 'relaxed matching setting saved');
+      await clickAria('关闭弹窗'); await click('题库'); await click('导入题库');
       await evaluate('document.querySelector("#import-text").focus()');
       await target.webContents.insertText('# 匹配规则测试\n{{实事求是}}。\n---\n{{叶绿体}}。\n---\n{{甲、乙、丙}}。\n---\n{{甲}}、{{乙}}、{{丙}}。\n---\n{{甲|乙}}、{{甲}}。\n---\n{{甲}}、{{乙}}。\n---\n{{甲}} 和 {{乙}}。\n---\n{{a}}、{{b}}、{{c}} 和 {{d}}。\n---\n{{a、b、c 和 d}}。');
       await click('导入 9 道题目'); await click('开始练习');
@@ -205,6 +209,7 @@ app.on('browser-window-created', (_event, win) => {
       const matching = (await evaluate('window.recallmate.load()')).bundles.find(b => b.bank.name === '匹配规则测试');
       check(Object.values(matching.bank.stats).reduce((sum, s) => sum + s.wrongAttemptCount, 0) === 3, 'Partial and incomplete submissions retain once-per-attempt wrong statistics');
       await require('./test-desktop-shortcuts.cjs')({ evaluate, click, clickAria, fill, until, delay, screenshot, check, target });
+      await require('./test-desktop-strict.cjs')({ evaluate, click, clickAria, fill, enter, until, delay, screenshot, check, target });
       await until('document.querySelector(".save-indicator").textContent.includes("已保存")', 'save complete');
       console.log(`Desktop smoke completed: ${assertions} assertions. Profile: ${profile}`);
       await fs.writeFile(path.join(root, 'artifacts', 'desktop-test-result.json'), JSON.stringify({ assertions, profile, passed: true }, null, 2));
@@ -218,4 +223,4 @@ app.on('browser-window-created', (_event, win) => {
   });
 });
 require(path.join(process.env.RECALLMATE_PACKAGED_ROOT || root, 'out/main/index.js'));
-setTimeout(() => { console.error('Desktop test timeout'); app.exit(1); }, 90000).unref();
+setTimeout(() => { console.error('Desktop test timeout'); app.exit(1); }, 120000).unref();

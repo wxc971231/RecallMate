@@ -56,6 +56,6 @@ export function parseQuestion(sourceText: string): ParsedQuestion {
   return result.questions[0];
 }
 
-export function checkAnswer(input: string, accepted: string[]): boolean {
-  return matchesAnswer(input, accepted);
+export function checkAnswer(input: string, accepted: string[], strictBlankOrder = false): boolean {
+  return matchesAnswer(input, accepted, strictBlankOrder);
 }

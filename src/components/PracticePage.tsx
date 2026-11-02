@@ -89,7 +89,7 @@ export function PracticePage({ bundle, fontSize, shortcuts, dispatch, exit, rest
   if (!attempt) return null;
   const question = bundle.bank.questions.find(q => q.id === attempt.questionId)!;
   const parsed = parseQuestion(question.sourceText);
-  const comparisons = assessBlanks(attempt.blanks, parsed);
+  const comparisons = assessBlanks(attempt.blanks, parsed, attempt.strictBlankOrder ?? false);
   const terminal = attempt.status !== 'active';
   const submit = () => { if (!composing.current && !peekActive.current) { dispatch({ type: 'submit' }); setFocusTick(t => t + 1); } };
   const fastAction = (action: PracticeAction) => {
@@ -120,7 +120,7 @@ export function PracticePage({ bundle, fontSize, shortcuts, dispatch, exit, rest
     <div className="practice-top"><button className="back-link" onClick={exit}><ArrowLeft size={17} /> 退出练习</button><div className="practice-bank">{bundle.bank.name}<span>{modeNames[session.mode]}</span></div><span className="progress-count"><b>{session.currentIndex + 1}</b> / {session.questionIds.length}</span></div>
     <div className="progress-track"><div style={{ width: `${session.currentIndex / session.questionIds.length * 100}%` }} /></div>
     <section className="question-card">
-      <div className="question-meta"><span>第 {session.currentIndex + 1} 题 · {parsed.answers.length} 个填空</span>{hasHelp(attempt) && <span>已使用帮助</span>}</div>
+      <div className="question-meta"><span>第 {session.currentIndex + 1} 题 · {parsed.answers.length} 个填空</span>{isDesktop && attempt.strictBlankOrder && <span className="strict-mode-label" title="本题按文档顺序判题">严格模式</span>}{hasHelp(attempt) && <span>已使用帮助</span>}</div>
       <div className="question-text" role={isAndroid ? 'region' : undefined} aria-label={isAndroid ? '题目与填空，可上下滚动' : undefined}>{parsed.fragments.map((fragment, i) => <span key={`${attempt.id}-${i}`}>
         {fragment}{i < parsed.answers.length && (() => {
           const blank = attempt.blanks[i];

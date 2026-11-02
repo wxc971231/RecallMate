@@ -24,21 +24,22 @@ function fillCompared(blank: BlankState, comparison: AnswerComparison, source: '
   return { value: value.join(''), status: 'unjudged', charSources };
 }
 
-export function applyHint(blank: BlankState, standard: string): BlankState {
-  const comparison = compareAnswer(blank.value, [standard]);
+export function applyHint(blank: BlankState, standard: string, strictBlankOrder = false): BlankState {
+  const comparison = compareAnswer(blank.value, [standard], strictBlankOrder);
   return comparison.correct ? blank : fillCompared(blank, comparison, 'hint');
 }
 
 function refreshJudgments(attempt: Attempt, question: ParsedQuestion) {
-  const comparisons = assessBlanks(attempt.blanks, question);
+  const comparisons = assessBlanks(attempt.blanks, question, attempt.strictBlankOrder ?? false);
   attempt.blanks.forEach((blank, index) => { if (blank.status !== 'unjudged') blank.status = judgmentStatus(comparisons[index]); });
 }
 
-export function createAttempt(bank: Bank, questionId: string): Attempt {
+export function createAttempt(bank: Bank, questionId: string, strictBlankOrder = false): Attempt {
   const question = bank.questions.find(q => q.id === questionId);
   if (!question) throw new Error('题目不存在');
   return {
     id: crypto.randomUUID(), questionId, status: 'active',
+    ...(strictBlankOrder ? { strictBlankOrder: true } : {}),
     blanks: parseQuestion(question.sourceText).answers.map(() => ({ value: '', status: 'unjudged', charSources: [] })),
     activeBlankIndex: 0, hadWrongSubmission: false, usedHint: false, viewedAnswer: false, gaveUp: false,
     startedAt: now(), beforeStats: { ...bank.stats[questionId] ?? emptyStats() },
@@ -69,17 +70,17 @@ export function updateAttempt(bundle: Bundle, a: Attempt): Bundle {
   return { ...bundle, bank: { ...bundle.bank, updatedAt: timestamp, stats: { ...bundle.bank.stats, [a.questionId]: projectStats(a) } }, session: { ...bundle.session, currentAttempt: a, updatedAt: timestamp } };
 }
 
-export function startSession(bundle: Bundle, mode: PracticeMode, ids?: string[]): Bundle {
+export function startSession(bundle: Bundle, mode: PracticeMode, ids?: string[], strictBlankOrder = false): Bundle {
   let questionIds = ids ?? bundle.bank.questions.filter(q => mode !== 'wrong' || bundle.bank.stats[q.id]?.inWrongBook).map(q => q.id);
   questionIds = [...new Set(questionIds)].filter(id => bundle.bank.questions.some(q => q.id === id));
   if (mode === 'random') for (let i = questionIds.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [questionIds[i], questionIds[j]] = [questionIds[j], questionIds[i]]; }
   if (!questionIds.length) throw new Error('没有可练习的题目');
   const session: Session = { schemaVersion: 1, bankId: bundle.bank.id, sessionId: crypto.randomUUID(), mode, questionIds, currentIndex: 0, summaries: [], startedAt: now(), updatedAt: now(), isFinished: false };
-  return updateAttempt({ ...bundle, session }, createAttempt(bundle.bank, questionIds[0]));
+  return updateAttempt({ ...bundle, session }, createAttempt(bundle.bank, questionIds[0], strictBlankOrder));
 }
 
 export type PracticeAction = { type: 'edit'; index: number; value: string } | { type: 'focus'; index: number } | { type: 'submit' | 'hint' | 'view' | 'give-up' | 'next' };
-export function practiceAction(bundle: Bundle, action: PracticeAction): Bundle {
+export function practiceAction(bundle: Bundle, action: PracticeAction, strictBlankOrder = bundle.session?.currentAttempt?.strictBlankOrder ?? false): Bundle {
   const session = bundle.session, current = session?.currentAttempt;
   if (!session || !current || session.isFinished) return bundle;
   const question = bundle.bank.questions.find(q => q.id === current.questionId);
@@ -93,7 +94,7 @@ export function practiceAction(bundle: Bundle, action: PracticeAction): Bundle {
     const currentIndex = session.currentIndex + 1;
     const nextSession = { ...updated.session!, currentIndex, summaries, isFinished: currentIndex >= session.questionIds.length, currentAttempt: undefined };
     const next = { ...updated, session: nextSession };
-    return nextSession.isFinished ? next : updateAttempt(next, createAttempt(next.bank, session.questionIds[currentIndex]));
+    return nextSession.isFinished ? next : updateAttempt(next, createAttempt(next.bank, session.questionIds[currentIndex], strictBlankOrder));
   }
   if (a.status === 'abandoned' || a.status === 'skipped') return bundle;
   const difficulty = (type: string) => { a.difficultyAt = now(); a.difficultyType = type; };
@@ -109,7 +110,7 @@ export function practiceAction(bundle: Bundle, action: PracticeAction): Bundle {
     refreshJudgments(a, parsed);
   }
   if (action.type === 'submit') {
-    if (a.status === 'completed') return practiceAction(bundle, { type: 'next' });
+    if (a.status === 'completed') return practiceAction(bundle, { type: 'next' }, strictBlankOrder);
     const blank = a.blanks[a.activeBlankIndex];
     if (blank.status === 'unjudged') blank.status = 'incorrect';
     refreshJudgments(a, parsed);
@@ -120,7 +121,7 @@ export function practiceAction(bundle: Bundle, action: PracticeAction): Bundle {
   }
   if (action.type === 'hint') {
     if (a.status !== 'active') return bundle;
-    const comparisons = assessBlanks(a.blanks, parsed);
+    const comparisons = assessBlanks(a.blanks, parsed, a.strictBlankOrder ?? false);
     // Complete valid variants and permutations need Enter, not another hint.
     const index = a.blanks.findIndex((b, i) => b.status !== 'correct' && !comparisons[i].correct);
     if (index < 0) return bundle;
@@ -131,7 +132,7 @@ export function practiceAction(bundle: Bundle, action: PracticeAction): Bundle {
   if (action.type === 'view') { a.viewedAnswer = true; difficulty('查看答案'); }
   if (action.type === 'give-up') {
     if (a.status !== 'active') return bundle;
-    const comparisons = assessBlanks(a.blanks, parsed);
+    const comparisons = assessBlanks(a.blanks, parsed, a.strictBlankOrder ?? false);
     a.blanks = a.blanks.map((b, i) => b.status === 'correct' || comparisons[i].correct ? b : fillCompared(b, comparisons[i], 'give_up'));
     a.status = 'abandoned'; a.gaveUp = true; a.endedAt = now(); difficulty('放弃');
   }
