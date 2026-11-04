@@ -1,6 +1,7 @@
 import { parseQuestion } from './parser';
 import { assessBlanks, compareAnswer, judgmentStatus, type AnswerComparison } from './answerMatcher';
-import type { Attempt, AttemptSummary, Bank, BlankState, Bundle, CharSource, ParsedQuestion, PracticeMode, QuestionStats, Session } from './types';
+import type { Attempt, AttemptSummary, Bank, BlankState, Bundle, CharSource, ClozeAttempt, ClozeBundle, ClozeQuestion, ObjectiveQuestion, ParsedQuestion, PracticeMode, QuestionStats, Session } from './types';
+import { gradeObjective, type ObjectiveAnswer } from './objectiveGrading';
 
 export const emptyStats = (): QuestionStats => ({ attemptCount: 0, wrongAttemptCount: 0, helpAttemptCount: 0, independentCorrectCount: 0, inWrongBook: false });
 const now = () => new Date().toISOString();
@@ -29,16 +30,22 @@ export function applyHint(blank: BlankState, standard: string, strictBlankOrder 
   return comparison.correct ? blank : fillCompared(blank, comparison, 'hint');
 }
 
-function refreshJudgments(attempt: Attempt, question: ParsedQuestion) {
+function refreshJudgments(attempt: ClozeAttempt, question: ParsedQuestion) {
   const comparisons = assessBlanks(attempt.blanks, question, attempt.strictBlankOrder ?? false);
   attempt.blanks.forEach((blank, index) => { if (blank.status !== 'unjudged') blank.status = judgmentStatus(comparisons[index]); });
 }
 
+export function createAttempt(bank: Bank<ClozeQuestion>, questionId: string, strictBlankOrder?: boolean): ClozeAttempt;
+export function createAttempt(bank: Bank, questionId: string, strictBlankOrder?: boolean): Attempt;
 export function createAttempt(bank: Bank, questionId: string, strictBlankOrder = false): Attempt {
   const question = bank.questions.find(q => q.id === questionId);
   if (!question) throw new Error('题目不存在');
+  const base = { id: crypto.randomUUID(), questionId, status: 'active' as const, hadWrongSubmission: false, usedHint: false, viewedAnswer: false, gaveUp: false, startedAt: now(), beforeStats: { ...bank.stats[questionId] ?? emptyStats() } };
+  if (question.type === 'true_false') return { ...base, questionType: question.type, selectedAnswer: null };
+  if (question.type === 'single_choice') return { ...base, questionType: question.type, selectedAnswer: null };
+  if (question.type === 'multiple_choice') return { ...base, questionType: question.type, selectedAnswer: [] };
   return {
-    id: crypto.randomUUID(), questionId, status: 'active',
+    ...base, questionType: 'cloze',
     ...(strictBlankOrder ? { strictBlankOrder: true } : {}),
     blanks: parseQuestion(question.sourceText).answers.map(() => ({ value: '', status: 'unjudged', charSources: [] })),
     activeBlankIndex: 0, hadWrongSubmission: false, usedHint: false, viewedAnswer: false, gaveUp: false,
@@ -47,7 +54,8 @@ export function createAttempt(bank: Bank, questionId: string, strictBlankOrder =
 }
 
 export function summarize(a: Attempt): AttemptSummary {
-  return { attemptId: a.id, questionId: a.questionId, wrong: a.hadWrongSubmission, help: hasHelp(a), skipped: a.status === 'skipped', independent: a.status === 'completed' && !a.hadWrongSubmission && !hasHelp(a) && a.blanks.every(b => b.status === 'correct' && b.charSources.every(s => s === 'user')) };
+  const passed = a.questionType === 'cloze' ? a.status === 'completed' && a.blanks.every(b => b.status === 'correct' && b.charSources.every(s => s === 'user')) : a.status === 'submitted';
+  return { attemptId: a.id, questionId: a.questionId, wrong: a.hadWrongSubmission, help: hasHelp(a), skipped: a.status === 'skipped', independent: passed && !a.hadWrongSubmission && !hasHelp(a) };
 }
 
 export function projectStats(a: Attempt): QuestionStats {
@@ -70,23 +78,27 @@ export function updateAttempt(bundle: Bundle, a: Attempt): Bundle {
   return { ...bundle, bank: { ...bundle.bank, updatedAt: timestamp, stats: { ...bundle.bank.stats, [a.questionId]: projectStats(a) } }, session: { ...bundle.session, currentAttempt: a, updatedAt: timestamp } };
 }
 
+export function startSession(bundle: ClozeBundle, mode: PracticeMode, ids?: string[], strictBlankOrder?: boolean): ClozeBundle;
+export function startSession(bundle: Bundle, mode: PracticeMode, ids?: string[], strictBlankOrder?: boolean): Bundle;
 export function startSession(bundle: Bundle, mode: PracticeMode, ids?: string[], strictBlankOrder = false): Bundle {
   let questionIds = ids ?? bundle.bank.questions.filter(q => mode !== 'wrong' || bundle.bank.stats[q.id]?.inWrongBook).map(q => q.id);
   questionIds = [...new Set(questionIds)].filter(id => bundle.bank.questions.some(q => q.id === id));
   if (mode === 'random') for (let i = questionIds.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [questionIds[i], questionIds[j]] = [questionIds[j], questionIds[i]]; }
   if (!questionIds.length) throw new Error('没有可练习的题目');
-  const session: Session = { schemaVersion: 1, bankId: bundle.bank.id, sessionId: crypto.randomUUID(), mode, questionIds, currentIndex: 0, summaries: [], startedAt: now(), updatedAt: now(), isFinished: false };
+  const session: Session = { schemaVersion: 2, bankId: bundle.bank.id, sessionId: crypto.randomUUID(), mode, questionIds, currentIndex: 0, summaries: [], startedAt: now(), updatedAt: now(), isFinished: false };
   return updateAttempt({ ...bundle, session }, createAttempt(bundle.bank, questionIds[0], strictBlankOrder));
 }
 
-export type PracticeAction = { type: 'edit'; index: number; value: string } | { type: 'focus'; index: number } | { type: 'submit' | 'hint' | 'view' | 'give-up' | 'next' };
-export function practiceAction(bundle: Bundle, action: PracticeAction, strictBlankOrder = bundle.session?.currentAttempt?.strictBlankOrder ?? false): Bundle {
+export type PracticeAction = ({ type: 'edit'; index: number; value: string } | { type: 'focus'; index: number } | { type: 'select'; value: ObjectiveAnswer } | { type: 'submit' | 'hint' | 'view' | 'give-up' | 'next' }) & { expectedAttemptId?: string };
+export function practiceAction(bundle: ClozeBundle, action: PracticeAction, strictBlankOrder?: boolean): ClozeBundle;
+export function practiceAction(bundle: Bundle, action: PracticeAction, strictBlankOrder?: boolean): Bundle;
+export function practiceAction(bundle: Bundle, action: PracticeAction, strictBlankOrder = bundle.session?.currentAttempt?.questionType === 'cloze' ? bundle.session.currentAttempt.strictBlankOrder ?? false : false): Bundle {
   const session = bundle.session, current = session?.currentAttempt;
   if (!session || !current || session.isFinished) return bundle;
+  if (action.expectedAttemptId && action.expectedAttemptId !== current.id) return bundle;
   const question = bundle.bank.questions.find(q => q.id === current.questionId);
   if (!question) return bundle;
-  const parsed = parseQuestion(question.sourceText);
-  const a: Attempt = { ...current, blanks: current.blanks.map(b => ({ ...b, charSources: [...b.charSources] })) };
+  const a: Attempt = current.questionType === 'cloze' ? { ...current, blanks: current.blanks.map(b => ({ ...b, charSources: [...b.charSources] })) } : current.questionType === 'multiple_choice' ? { ...current, selectedAnswer: [...current.selectedAnswer] } : { ...current };
   if (action.type === 'next') {
     if (a.status === 'active') { a.status = 'skipped'; a.endedAt = now(); }
     const updated = updateAttempt(bundle, a);
@@ -98,6 +110,25 @@ export function practiceAction(bundle: Bundle, action: PracticeAction, strictBla
   }
   if (a.status === 'abandoned' || a.status === 'skipped') return bundle;
   const difficulty = (type: string) => { a.difficultyAt = now(); a.difficultyType = type; };
+  if (a.questionType !== 'cloze') {
+    if (a.status !== 'active' || question.type === 'cloze' || a.questionType !== question.type) return bundle;
+    if (action.type === 'select') {
+      const value = action.value;
+      if (a.questionType === 'true_false' && (value === null || typeof value === 'boolean')) a.selectedAnswer = value;
+      else if (a.questionType === 'single_choice' && (value === null || (typeof value === 'string' && question.type !== 'true_false' && question.options.some(o => o.id === value)))) a.selectedAnswer = value;
+      else if (a.questionType === 'multiple_choice' && Array.isArray(value) && new Set(value).size === value.length && question.type === 'multiple_choice' && value.every(id => question.options.some(o => o.id === id))) a.selectedAnswer = [...value];
+      else return bundle;
+      return { ...bundle, session: { ...session, currentAttempt: a } };
+    }
+    if (action.type === 'submit') {
+      const result = gradeObjective(question, a.selectedAnswer); if (result.empty) return bundle;
+      a.hadWrongSubmission = !result.correct; a.status = 'submitted'; a.endedAt = now(); if (!result.correct) difficulty('答错');
+    } else if (action.type === 'give-up' || action.type === 'view') {
+      a.status = 'abandoned'; a.endedAt = now(); a.gaveUp = action.type === 'give-up'; a.viewedAnswer = action.type === 'view'; difficulty('查看答案');
+    } else return bundle;
+    return updateAttempt(bundle, a);
+  }
+  const parsed = parseQuestion(question.sourceText);
   if (action.type === 'focus') {
     a.activeBlankIndex = Math.max(0, Math.min(action.index, a.blanks.length - 1));
     return { ...bundle, session: { ...session, currentAttempt: a } };

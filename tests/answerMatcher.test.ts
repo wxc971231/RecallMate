@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { assessBlanks, answerGroups, compareAnswer, compareText, feedbackLabel, matchesAnswer } from '../src/domain/answerMatcher';
-import { createBank, validateBundle } from '../src/domain/banks';
+import { createBank, validateClozeBundle as validateBundle } from '../src/domain/banks';
 import { checkAnswer, parseQuestion } from '../src/domain/parser';
 import { applyHint, practiceAction, startSession } from '../src/domain/practice';
-import type { BlankState, Bundle } from '../src/domain/types';
+import type { BlankState, ClozeBundle as Bundle } from '../src/domain/types';
 
 const blank = (value: string, status: BlankState['status'] = 'unjudged'): BlankState => ({ value, status, charSources: Array.from(value).map(() => 'user') });
 const start = (text: string) => startSession(createBank(text), 'all');

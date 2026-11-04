@@ -1,17 +1,23 @@
-# RecallMate Android 0.1.2
+# RecallMate Android 0.2.1
 
-Android 版在 `feature/android` 分支开发，Windows 稳定基线为标签 `windows-v0.1.4`。共享 `src/domain/` 的解析、匹配、提示、统计和练习会话，不维护两份判题实现。
+Android 首版在 `feature/android` 开发；本轮与 Windows 多题型更新共同位于 `feature/mixed-question-types`。共享 `src/domain/` 的解析、匹配、提示、统计和练习会话，不维护两份判题实现。
 
 0.1.1 修复软键盘场景：题目与填空在独立区域内上下滚动，反馈和操作栏固定在其下方；点击提示及按住查看答案保留输入焦点和键盘，查看期间不接受答案编辑，松开后恢复光标。
 
 0.1.2 优化键盘打开后的题目空间：依据原生键盘显示状态收起标题、退出导航、进度条及版本状态栏，保留系统安全边距、题号/填空数和答题按钮；关闭键盘恢复完整导航。取消常驻的确认操作提示，仅在判题后保留未完整、错误、完成和放弃反馈。长题仍在独立区域滚动，提示和按住答案继续保持键盘。
 
-## 首版功能
+0.2.0 对齐 Windows 0.2.8：支持填空、判断、单选和多选，导入混合 `.questionbank.json` 内容包、追加去重、题型筛选、按库错题本与完整备份。逐选项解析包含选项原文、知识点引文及分析。解析在上、知识点在下，默认展开并可独立收起。练习顶部使用极简工具栏，无默认选项焦点；键盘打开时扩大题目滚动区域。
+
+旧版 V1 题库保留原 ID、统计和未完成草稿，旧题未记录严格模式时继续沿用原宽松规则。首次保存 V2 前在私有目录 `files/recallmate/migrations/` 留存 V1 原始文本；归档失败不覆盖题库和备份。更高版本文件不退回旧备份或被覆盖。Android 0.2.0 与 Windows 0.2.x 支持双向 V2 备份，旧版 0.1.2 不能读取新版数据。
+
+0.2.1 将题库详情右侧箭头菜单改为“新建练习”下拉按钮，与相邻操作按钮统一样式，手机上占满网格列宽。菜单保留顺序练习、随机练习与重命名操作。
+
+## 当前功能
 
 - 竖屏手机布局：题库卡片、底部题库/错题导航、单独的练习操作区；手机和平板可随屏幕旋转。
 - UTF-8 TXT、Markdown 和 RecallMate JSON 通过系统文件选择器导入，单文件最大 20 MiB；粘贴导入、预览与错误提示沿用桌面版。
 - 题库和题目的新增、修改、搜索、重命名、删除、分页；顺序/随机/单题/从指定题开始、错题和本轮错题练习。
-- 顿号及“和”的单空/跨空混合换序、一对一匹配、部分正确字符高亮、提示、按住查看答案、放弃与跳过。
+- 填空严格模式默认开启，在设置中关闭后支持顿号及“和”的单空/跨空混合换序；部分正确字符高亮、提示、按住答案、放弃与跳过。
 - 独立的界面/练习字号，输入框随练习字号同步缩放，重启后保留。
 - 原生私有目录 JSON 保存，使用 Android AtomicFile 与串行 I/O；上一份已验证快照单独备份，损坏时恢复备份并保留原文件。
 - 输入停止 400ms 后保存；判题、切题立即保存；进入后台和通过返回键离开练习时主动刷写。突然断电或系统强制终止前未完成的写入不作持久化承诺。
@@ -57,7 +63,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-android.ps
 
 ```text
 release/android/
-  RecallMate-Android-0.1.2.apk
+  RecallMate-Android-0.2.1.apk
   SHA256SUMS.txt
   使用说明.txt
 ```
@@ -82,6 +88,13 @@ npm.cmd run test:android
 
 # 长题、真实上下滑动、提示/答案按钮的软键盘保持
 npm.cmd run test:android:keyboard
+
+node scripts/test-android-mixed.cjs
+node scripts/test-android-migration.cjs
+
+# 可选：真实 Windows 测试目录 -> Android 恢复与系统导出
+$env:RECALLMATE_DESKTOP_TEST_PROFILE = "artifacts/desktop-test-实际时间戳"
+node scripts/test-android-backup.cjs
 
 # 对专用模拟器中的签名 APK 验证离线启动与覆盖安装
 npm.cmd run test:android:release

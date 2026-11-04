@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title description">
   <title id="title">RecallMate</title>
-  <desc id="description">离线填空背诵工具。深绿渐变背景、绿叶图标与居中的 RecallMate 标题。</desc>
+  <desc id="description">离线知识练习工具。深绿渐变背景、绿叶图标与居中的 RecallMate 标题。</desc>
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
       <stop stop-color="#101f23"/><stop offset=".55" stop-color="#123c34"/><stop offset="1" stop-color="#172b32"/>
@@ -33,9 +33,9 @@
       <path d="M64 177C43 112 98 71 195 49C202 146 151 194 69 179M55 205C75 169 106 140 146 110"/>
     </g>
     <text x="600" y="209" text-anchor="middle" fill="url(#wordmark)" font-family="Segoe UI,Arial,sans-serif" font-size="76" font-weight="700" letter-spacing="-2.6">RecallMate</text>
-    <text x="600" y="253" text-anchor="middle" fill="#b6d6c8" font-family="Segoe UI,Microsoft YaHei,sans-serif" font-size="23" letter-spacing="5">离线填空背诵工具</text>
+    <text x="600" y="253" text-anchor="middle" fill="#b6d6c8" font-family="Segoe UI,Microsoft YaHei,sans-serif" font-size="23" letter-spacing="5">离线知识练习工具</text>
     <path d="M438 292H460M740 292H762" stroke="#8fe9bf" stroke-opacity=".35"/>
-    <text x="600" y="298" text-anchor="middle" fill="#8fb5a5" font-family="Segoe UI,Microsoft YaHei,sans-serif" font-size="15">Markdown → 填空练习 → 错题复习</text>
+    <text x="600" y="298" text-anchor="middle" fill="#8fb5a5" font-family="Segoe UI,Microsoft YaHei,sans-serif" font-size="15">固定题库 → 主动回忆 → 错题复习</text>
     <rect x=".5" y=".5" width="1199" height="359" rx="20" fill="none" stroke="#80bb9f" stroke-opacity=".15"/>
   </g>
 </svg>

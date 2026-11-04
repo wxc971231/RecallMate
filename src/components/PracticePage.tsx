@@ -3,17 +3,27 @@ import { ArrowLeft, ArrowRight, Check, Eye, Flag, Lightbulb, RotateCcw } from 'l
 import { parseQuestion } from '../domain/parser';
 import { hasHelp, type PracticeAction } from '../domain/practice';
 import { assessBlanks, feedbackLabel } from '../domain/answerMatcher';
-import type { Bundle, PracticeMode } from '../domain/types';
+import type { Bundle, ClozeAttempt, Session, PracticeMode } from '../domain/types';
 import { isAndroid, isDesktop } from '../services/platform';
 import { Keyboard } from '@capacitor/keyboard';
 import { shortcutAria, shortcutNames, type ShortcutAction, type Shortcuts } from '../domain/shortcuts';
 import { usePracticeShortcuts } from '../hooks/usePracticeShortcuts';
+import { ObjectivePracticePage } from './ObjectivePracticePage';
+import { AnswerFeedback } from './AnswerFeedback';
 
 const modeNames: Record<PracticeMode, string> = { all: '顺序练习', random: '随机练习', wrong: '错题复习', single: '单题练习', 'round-wrong': '本轮错题' };
-export function PracticePage({ bundle, fontSize, shortcuts, dispatch, exit, restart }: {
+interface PracticeProps {
   bundle: Bundle; fontSize: number; shortcuts: Shortcuts; dispatch(action: PracticeAction, debounce?: boolean): void;
   exit(): void; restart(mode: PracticeMode, ids?: string[]): void;
-}) {
+}
+export function PracticePage(props: PracticeProps) {
+  const session = props.bundle.session!, attempt = session.currentAttempt;
+  const question = attempt && props.bundle.bank.questions.find(q => q.id === attempt.questionId);
+  if (!session.isFinished && attempt && attempt.questionType !== 'cloze' && question && question.type !== 'cloze') return <ObjectivePracticePage {...props} question={question} attempt={attempt} />;
+  const cloze = attempt?.questionType === 'cloze' ? attempt : undefined;
+  return <ClozePracticePage {...props} bundle={{ ...props.bundle, session: { ...session, currentAttempt: cloze } }} dispatch={(action, debounce) => props.dispatch({ ...action, expectedAttemptId: cloze?.id }, debounce)} />;
+}
+function ClozePracticePage({ bundle, fontSize, shortcuts, dispatch, exit, restart }: Omit<PracticeProps,'bundle'> & { bundle: Omit<Bundle,'session'> & {session: Session<ClozeAttempt>} }) {
   const session = bundle.session!;
   const attempt = session.currentAttempt;
   const [showAnswer, setShowAnswer] = useState(false);
@@ -27,6 +37,7 @@ export function PracticePage({ bundle, fontSize, shortcuts, dispatch, exit, rest
   const caret = useRef<{ start: number | null; end: number | null } | null>(null);
   const clickTime = useRef(0);
   const attemptRef = useRef(attempt); attemptRef.current = attempt;
+  const focusAttempt = useRef<string | undefined>(undefined);
   const shortcutHandler = useRef<(action: ShortcutAction) => void>(() => {});
 
   const hide = (restore = true) => {
@@ -49,6 +60,13 @@ export function PracticePage({ bundle, fontSize, shortcuts, dispatch, exit, rest
   useEffect(() => {
     peekActive.current = false; setShowAnswer(false);
     if (!attempt || session.isFinished) return;
+    const newQuestion=focusAttempt.current!==attempt.id;
+    focusAttempt.current=attempt.id;
+    if(!isAndroid&&newQuestion){
+      const focused=document.activeElement;
+      if(focused instanceof HTMLElement&&focused.closest('.practice-page'))focused.blur();
+      return;
+    }
     const input = inputs.current[attempt.activeBlankIndex];
     if (!isAndroid || focusTick) input?.focus();
     if (focusTick && input) input.setSelectionRange(input.value.length, input.value.length);
@@ -116,12 +134,13 @@ export function PracticePage({ bundle, fontSize, shortcuts, dispatch, exit, rest
   const confirmInstruction = isAndroid ? '点击“确认答案”' : shortcuts.submit ? `按 ${shortcuts.submit} 确认当前答案` : '点击“确认答案”';
   const pendingFeedback = comparisons.filter((comparison, i) => attempt.blanks[i].status !== 'unjudged' && !comparison.correct);
   const statusText = attempt.status === 'completed' ? (isAndroid || !shortcuts.submit ? '全部答对，点击“下一题”继续' : `全部答对，按 ${shortcuts.submit} 进入下一题`) : attempt.status === 'abandoned' ? '已补全答案，黄色部分由系统补写' : pendingFeedback.some(c => c.duplicate) ? '有重复项目，每个正确选项只能使用一次' : pendingFeedback.length ? pendingFeedback.some(c => c.chars.includes('incorrect')) ? '已标出匹配部分，请修改标红内容后重新提交' : `还有遗漏，补全后${confirmInstruction}` : confirmInstruction;
-  return <div className="practice-page">
-    <div className="practice-top"><button className="back-link" onClick={exit}><ArrowLeft size={17} /> 退出练习</button><div className="practice-bank">{bundle.bank.name}<span>{modeNames[session.mode]}</span></div><span className="progress-count"><b>{session.currentIndex + 1}</b> / {session.questionIds.length}</span></div>
+  return <div className="practice-page cloze-practice">
+    {!isDesktop&&!isAndroid&&<><div className="practice-top"><button className="back-link" onClick={exit}><ArrowLeft size={17} /> 退出练习</button><div className="practice-bank">{bundle.bank.name}<span>{modeNames[session.mode]}</span></div><span className="progress-count"><b>{session.currentIndex + 1}</b> / {session.questionIds.length}</span></div>
     <div className="progress-track"><div style={{ width: `${session.currentIndex / session.questionIds.length * 100}%` }} /></div>
-    <section className="question-card">
-      <div className="question-meta"><span>第 {session.currentIndex + 1} 题 · {parsed.answers.length} 个填空</span>{isDesktop && attempt.strictBlankOrder && <span className="strict-mode-label" title="本题按文档顺序判题">严格模式</span>}{hasHelp(attempt) && <span>已使用帮助</span>}</div>
-      <div className="question-text" role={isAndroid ? 'region' : undefined} aria-label={isAndroid ? '题目与填空，可上下滚动' : undefined}>{parsed.fragments.map((fragment, i) => <span key={`${attempt.id}-${i}`}>
+    </>}<section className="question-card">
+      {!isDesktop&&<div className="question-meta mobile-question-meta"><span>第 {session.currentIndex + 1} 题 · {parsed.answers.length} 个填空</span>{isDesktop && attempt.strictBlankOrder && <span className="strict-mode-label" title="本题按文档顺序判题">严格模式</span>}{hasHelp(attempt) && <span>已使用帮助</span>}</div>}
+      <div className="cloze-body" role={isAndroid ? 'region' : undefined} aria-label={isAndroid ? '题目与填空，可上下滚动' : undefined}>
+      <div className="question-text">{parsed.fragments.map((fragment, i) => <span key={`${attempt.id}-${i}`}>
         {fragment}{i < parsed.answers.length && (() => {
           const blank = attempt.blanks[i];
           const comparison = comparisons[i];
@@ -158,7 +177,9 @@ export function PracticePage({ bundle, fontSize, shortcuts, dispatch, exit, rest
           </span>;
         })()}
       </span>)}</div>
-      {(!isAndroid || terminal || pendingFeedback.length > 0) && <div className={`question-feedback ${terminal ? 'positive' : ''}`} role="status">{statusText}</div>}
+      {(terminal || pendingFeedback.length > 0) && <div className={`question-feedback ${terminal ? 'positive' : ''}`} role="status">{statusText}</div>}
+      {terminal && <AnswerFeedback question={question} knowledgePoints={bundle.bank.knowledgePoints} />}
+      </div>
     </section>
     <div className="practice-actions">
       <div className="help-actions"><button className="tool-button answer-button" {...shortcutProps('answer')} onPointerDown={e => { e.preventDefault(); peek(); }} onPointerLeave={() => hide()} onPointerUp={() => hide()} onPointerCancel={() => hide()} onKeyDown={e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); peek(); } }} onKeyUp={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); hide(); } }} onBlur={() => hide(false)}><Eye size={18} /><span>答案（按住）</span></button>

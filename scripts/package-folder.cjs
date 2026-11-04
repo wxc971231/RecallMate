@@ -38,6 +38,7 @@ async function main() {
   for (const directory of ['banks', 'backups', 'runtime', 'temp', 'logs', 'crashes', 'exports']) await fs.mkdir(path.join(cleanFolder, 'data', directory), { recursive: true });
   await fs.writeFile(path.join(cleanFolder, '使用说明.txt'), `RecallMate ${version} 文件夹便携版\r\n\r\n双击 RecallMate.exe 启动。请保留整个文件夹，不要只复制 EXE。\r\n\r\n题库、进度和自动备份：data\\banks 与 data\\backups\r\n运行缓存：data\\runtime\r\n临时文件：data\\temp\r\n日志与崩溃转储：data\\logs 与 data\\crashes\r\n导出的 JSON 备份：data\\exports\r\n\r\n移动或备份软件时，请先关闭，再复制整个文件夹。不要将 data 文件夹删除。\r\n文件夹不可写时会提示并退出，不会回退到 AppData。\r\n\r\n0.1.0 旧版数据不会被自动读取或删除。需要时可将旧目录的 banks、backups 复制到 data 中。\r\n\r\n本软件管理的数据写入上述文件夹；Windows、驱动、杀毒软件与原生文件对话框可能维护各自的系统记录，应用无法承诺系统级零痕迹。\r\n`, 'utf8');
   await fs.appendFile(path.join(cleanFolder, '使用说明.txt'), '\r\n设置 → 答题规则：填空严格模式默认开启，单空及多个并列空按文档顺序判题。关闭后允许并列换序；切换从下一题或新练习起生效，当前题保留原规则。\r\n', 'utf8');
+  await fs.appendFile(path.join(cleanFolder, '使用说明.txt'), '\r\n支持填空、判断、单选、多选。混合内容包示例在 resources\\examples。导出题库内容只含题目与知识点；导出备份包含学习记录。旧 V1 首次保存前保留到 data\\migrations，新 V2 备份暂不适用于 Android 0.1.2。\r\n', 'utf8');
   // Build the complete clean archive before touching any existing release files.
   const zipper = path.join(__dirname, 'zip-folder.ps1');
   const archive = path.join(staging, `${name}.zip`);

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { checkAnswer, parseQuestion, parseQuestionFile } from '../src/domain/parser';
-import { createBank, deleteQuestion, dismissWrongQuestion, validateBundle } from '../src/domain/banks';
+import { createBank, deleteQuestion, dismissWrongQuestion, validateClozeBundle as validateBundle } from '../src/domain/banks';
 import { applyHint, practiceAction, reconcileSources, sortWrongQuestions, startSession } from '../src/domain/practice';
 import { sampleText } from '../src/sample';
-import type { Bundle } from '../src/domain/types';
+import type { ClozeBundle as Bundle } from '../src/domain/types';
 
 const bank = () => createBank('# 测试\n第一题{{甲|A}}和{{乙}}。\n---\n第二题{{实事求是}}。');
 const edit = (b: Bundle, index: number, value: string) => practiceAction(b, { type: 'edit', index, value });
@@ -43,7 +43,7 @@ describe('题库解析与校验', () => {
     expect(() => validateBundle(session)).toThrow('队列');
   });
   it('未知 schema、路径式 ID、错误字符来源与状态会拒绝', () => {
-    expect(() => validateBundle({ ...bank(), schemaVersion: 2 })).toThrow('版本');
+    expect(() => validateBundle({ ...bank(), schemaVersion: 999 })).toThrow('版本');
     const invalid = bank(); invalid.bank.id = '../escape'; expect(() => validateBundle(invalid)).toThrow('标识');
     const b = startSession(bank(), 'all'); b.session!.currentAttempt!.blanks[0].charSources = ['user'];
     expect(() => validateBundle(b)).toThrow('字符来源');

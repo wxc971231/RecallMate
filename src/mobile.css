@@ -36,7 +36,7 @@
 .native-app .modal-footer { gap: 12px; }
 .native-app .modal-footer > .button-row { margin-left: auto; }
 .native-app .code-input { height: 190px; }
-.native-app .import-grid { grid-template-columns: 1fr; }
+.native-app .import-grid { grid-template-columns: 1fr; grid-template-areas: "source-heading" "source" "preview-heading" "preview"; grid-template-rows: auto; }
 .native-app .file-drop { min-height: 76px; }
 .native-app .file-drop small { line-height: 1.7; }
 .native-app .import-preview { padding: 14px; }
@@ -132,3 +132,36 @@
   .native-app .practice-actions > .button-row > button { min-width: 110px; }
   .native-app .question-card { padding-top: 12px; }
 }
+
+/* Mixed practice shares the compact toolbar, with native safe areas and IME. */
+.native-app[data-practice-layout=minimal] .app-header{height:calc(48px + var(--safe-top));min-height:calc(48px + var(--safe-top));padding:var(--safe-top) 12px 0;gap:8px}
+.native-app[data-practice-layout=minimal] .app-header>.back-link{min-width:36px;min-height:44px;justify-content:center}
+.native-app[data-practice-layout=minimal] .app-header>.back-link>span{display:none}
+.native-app[data-practice-layout=minimal] .practice-mini-meta{font-size:.8rem;gap:6px;overflow:hidden}
+.native-app[data-practice-layout=minimal] .header-right{gap:2px;flex-shrink:0}
+.native-app[data-practice-layout=minimal] .practice-main{padding:4px 12px 0}
+.native-app[data-practice-layout=minimal] .practice-page{height:100%;min-height:0}
+.native-app[data-practice-layout=minimal] .cloze-body{display:block;flex:1 1 0;min-height:0;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;padding:6px 4px 8px 0}
+.native-app[data-practice-layout=minimal] .question-text{flex:none;overflow:visible;min-height:0;margin:0;line-height:2.5;padding-bottom:0}
+.native-app[data-practice-layout=minimal] .objective-body{flex:1 1 0;min-height:0;touch-action:pan-y;padding:6px 4px 8px 0}
+.native-app[data-practice-layout=minimal] .mobile-question-meta{display:none}
+.native-app[data-practice-layout=minimal] .practice-actions{padding:6px 0 8px;gap:4px}
+.native-app[data-practice-layout=minimal] .app-footer{min-height:calc(20px + var(--safe-bottom));height:auto;padding:0 12px var(--safe-bottom)}
+.native-app .objective-practice .help-actions:empty{display:none}
+.native-app .objective-option{min-height:48px;padding:10px 12px;gap:9px;align-items:baseline}
+.native-app .feedback-panel>summary{min-height:44px}
+.native-app .cloze-body .answer-explanation{padding-bottom:12px}
+.native-app .option-explanations{padding-left:18px}
+.native-app .objective-result-line{gap:4px 12px}
+.native-app .detail-heading>.button-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+.native-app .detail-heading>.button-row>.secondary{padding:8px;font-size:.9rem;white-space:normal}
+.native-app .detail-heading>.button-row{align-items:stretch}
+.native-app .detail-heading>.button-row>.action-menu{justify-self:stretch}
+.native-app .new-practice-menu>summary{width:100%;height:100%}
+.native-app .sort-select{max-width:100%}
+.native-app[data-practice-focus=true][data-practice-layout=minimal] .app-header,
+.native-app[data-practice-focus=true][data-practice-layout=minimal] .app-footer{display:none}
+.native-app[data-practice-focus=true][data-practice-layout=minimal] .practice-main{padding-top:0}
+.native-app[data-practice-focus=true][data-practice-layout=minimal] .mobile-question-meta{display:flex;padding:4px 0 0;font-size:.75rem}
+.native-app[data-practice-focus=true][data-practice-layout=minimal] .cloze-body{padding-top:4px}
+@media(max-width:420px){.native-app .practice-mini-meta .strict-mode-label{display:none}.native-app .practice-mini-meta{letter-spacing:-.02em}}

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { shortcutActions, shortcutFromEvent, type ShortcutAction, type Shortcuts } from '../domain/shortcuts';
 import { isDesktop } from '../services/platform';
 
-interface Controls { enabled: boolean; composing(): boolean; action(action: ShortcutAction): void; release(restore: boolean): void }
+interface Controls { enabled: boolean; allowed?: ShortcutAction[]; composing(): boolean; action(action: ShortcutAction): void; release(restore: boolean): void }
 export function usePracticeShortcuts(shortcuts: Shortcuts, controls: Controls) {
   const current = useRef({ shortcuts, controls }); current.current = { shortcuts, controls };
   useEffect(() => {
@@ -14,9 +14,9 @@ export function usePracticeShortcuts(shortcuts: Shortcuts, controls: Controls) {
       const { shortcuts, controls } = current.current;
       if (!controls.enabled || blocked() || controls.composing() || event.isComposing || event.keyCode === 229) return;
       const editable = (event.target as HTMLElement)?.closest?.('input, textarea, select, [contenteditable="true"]');
-      if (editable && !editable.matches('.blank-wrap input')) return;
+      if (editable && !editable.matches('.blank-wrap input, .objective-options input')) return;
       const key = shortcutFromEvent(event), action = shortcutActions.find(action => !!key && shortcuts[action] === key);
-      if (!action) return;
+      if (!action || (controls.allowed && !controls.allowed.includes(action))) return;
       if (event.key === 'Enter' && (event.target as HTMLElement)?.closest?.('button, a, summary')) return;
       event.preventDefault(); event.stopPropagation();
       if (event.repeat) return;

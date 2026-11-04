@@ -150,6 +150,7 @@ async function main() {
   // The Android shell joins arguments: quote the user-facing filename safely.
   const exportedText = adb('shell', 'cat', "'" + exportPath.replaceAll("'", "'\\''") + "'");
   check(JSON.parse(exportedText).bank.id === bank.bank.id, 'System save picker exports a complete Windows-compatible JSON backup');
+  await click('设置');check(await evaluate('document.querySelector("#strict-blank-order").checked'),'Android exposes strict fill mode, enabled by default');await evaluate('document.querySelector("#strict-blank-order").click()');await saved();await click('关闭弹窗');
   const importPath = path.join(artifact, 'RecallMate-Android-Test.md');
   await fs.writeFile(importPath, '# 安卓并列测试\n{{a}}、{{b}}、{{c}} 和 {{d}}。\n---\n{{甲和乙}}。');
   adb('push', importPath, '/sdcard/Download/RecallMate-Android-Test.md');
@@ -187,4 +188,4 @@ if (require.main === module) main().catch(async error => {
   try { await screenshot('failure.png'); console.error(await evaluate('document.body.innerText')); } catch {}
   process.exitCode = 1;
 }).finally(() => { socket?.close(); });
-module.exports = { adb, connect, evaluate, command, click, fill, screenshot, saved, until, pause, close: () => socket?.close(), root, packageId, artifact };
+module.exports = { adb, connect, evaluate, command, click, fill, screenshot, saved, until, pause, nativeUi, nativeTap, close: () => socket?.close(), root, packageId, artifact };

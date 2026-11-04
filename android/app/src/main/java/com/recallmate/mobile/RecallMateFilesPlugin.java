@@ -22,6 +22,7 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.json.JSONObject;
 
 /** The bridge exposes bank operations, never an arbitrary filesystem path. */
 @CapacitorPlugin(name = "RecallMateFiles")
@@ -101,6 +102,39 @@ public class RecallMateFilesPlugin extends Plugin {
         catch (IOException error) { record.put(key, ""); }
     }
 
+    private void guardVersion(File file) throws IOException {
+        if (!file.exists() && !new File(file.getPath()+".bak").exists()) return;
+        String text;
+        try { text=read(file,MAX_BYTES); } catch (IOException error) { return; }
+        try {
+            JSONObject raw=new JSONObject(text),bank=raw.optJSONObject("bank"),session=raw.optJSONObject("session");
+            if(raw.optInt("schemaVersion",0)>2||(bank!=null&&bank.optInt("schemaVersion",0)>2)||(session!=null&&session.optInt("schemaVersion",0)>2))
+                throw new IOException("题库属于更高版本，禁止覆盖原文件");
+        } catch(org.json.JSONException error) { /* Corrupt JSON is preserved separately. */ }
+    }
+
+    private void validateLegacyOriginal(String id,String text) throws IOException {
+        try {
+            JSONObject raw=new JSONObject(text);
+            if(raw.optInt("schemaVersion",0)!=1||!id.equals(raw.getJSONObject("bank").optString("id")))throw new IOException("旧题库迁移原件无效，已停止保存");
+        } catch(org.json.JSONException error) { throw new IOException("无法验证旧题库迁移原件",error); }
+    }
+
+    private void archiveLegacyOriginal(String id,String text) throws IOException {
+        validateLegacyOriginal(id,text);
+        File archive=new File(directory("migrations"),id+".v1.original.json");
+        if(archive.exists()||new File(archive.getPath()+".bak").exists())validateLegacyOriginal(id,read(archive,MAX_BYTES));
+        else write(archive,text,MAX_BYTES);
+    }
+
+    private String legacyCandidate(File file,String id) {
+        try {
+            String text=read(file,MAX_BYTES);JSONObject raw=new JSONObject(text);
+            if(raw.optInt("schemaVersion",0)==1&&id.equals(raw.getJSONObject("bank").optString("id")))return text;
+        } catch(Exception ignored) { /* Validated adapter originals take priority. */ }
+        return null;
+    }
+
     @PluginMethod
     public void list(PluginCall call) {
         work(call, () -> {
@@ -130,8 +164,14 @@ public class RecallMateFilesPlugin extends Plugin {
         work(call, () -> {
             String id = id(call), text = call.getString("text"), previous = call.getString("previous");
             File main = new File(directory("banks"), id + ".json");
+            File backup=new File(directory("backups"),id+".json.bak");
+            guardVersion(main);guardVersion(backup);
+            String legacyOriginal=call.getString("legacyOriginal");
+            if(legacyOriginal==null)legacyOriginal=legacyCandidate(main,id);
+            if(legacyOriginal==null)legacyOriginal=legacyCandidate(backup,id);
+            if(legacyOriginal!=null)archiveLegacyOriginal(id,legacyOriginal);
             if (Boolean.TRUE.equals(call.getBoolean("preserve", false))) preserve(main);
-            if (previous != null) write(new File(directory("backups"), id + ".json.bak"), previous, MAX_BYTES);
+            if (previous != null) write(backup, previous, MAX_BYTES);
             write(main, text, MAX_BYTES);
             return new JSObject();
         });

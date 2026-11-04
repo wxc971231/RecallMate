@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
-const { inside, managedName, inspectRelease, backupReleaseData, removeReleaseEntries } = createRequire(import.meta.url)('../scripts/release-files.cjs');
+const { inside, managedName, inspectRelease, backupReleaseData, removeReleaseEntries, verifyCopy } = createRequire(import.meta.url)('../scripts/release-files.cjs');
 let root: string;
 beforeEach(async () => { root = await mkdtemp(join(tmpdir(), 'recallmate-release-test-')); await mkdir(join(root, 'release')); });
 afterEach(async () => { if (!resolve(root).startsWith(resolve(tmpdir()) + sep) || !root.split(sep).at(-1)!.startsWith('recallmate-release-test-')) throw new Error('Unexpected cleanup path'); await rm(root, { recursive: true, force: true }); });
@@ -35,5 +35,11 @@ describe('发布目录清理', () => {
     expect(backups).toHaveLength(1); expect(backups[0].to.startsWith(join(root, '.cache', 'release-data-backups') + sep)).toBe(true);
     await removeReleaseEntries(release, entries);
     expect(await readdir(release)).toEqual([]); expect(await readFile(join(backups[0].to, 'banks', 'bank.json'), 'utf8')).toBe('preserved bank');
+    const manifest=JSON.parse(await readFile(join(backups[0].to,'..','manifest.json'),'utf8'));expect(manifest).toHaveLength(1);expect(manifest[0].sha256).toMatch(/^[a-f0-9]{64}$/);
+  });
+  it('备份校验识别缺失或异文文件，不允许把不完整副本当成功',async()=>{
+    const source=join(root,'original'),destination=join(root,'copy');await mkdir(source);await mkdir(destination);await writeFile(join(source,'bank.json'),'original');
+    await expect(verifyCopy(source,destination)).rejects.toThrow();await writeFile(join(destination,'bank.json'),'changed');await expect(verifyCopy(source,destination)).rejects.toThrow('verification');
+    await writeFile(join(destination,'bank.json'),'original');expect(await verifyCopy(source,destination)).toHaveLength(1);
   });
 });

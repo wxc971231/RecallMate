@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { assessBlanks, compareAnswer } from '../src/domain/answerMatcher';
-import { createBank, validateBundle } from '../src/domain/banks';
+import { createBank, validateClozeBundle as validateBundle } from '../src/domain/banks';
 import { checkAnswer, parseQuestion } from '../src/domain/parser';
 import { practiceAction, startSession } from '../src/domain/practice';
 import { defaultSettings, validateSettings } from '../src/domain/settings';
-import type { BlankState, Bundle } from '../src/domain/types';
+import type { BlankState, ClozeBundle as Bundle } from '../src/domain/types';
 
 const blank = (value: string): BlankState => ({ value, status:'unjudged', charSources:Array.from(value,()=> 'user') });
 const start = (text: string, strict = true) => startSession(createBank(text), 'all', undefined, strict);

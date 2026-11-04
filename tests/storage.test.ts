@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtemp, readFile, writeFile, rm, readdir } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, rm, readdir, mkdir } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
-import { exportBundleToDirectory, FileStore } from '../electron/storage';
-import { createBank } from '../src/domain/banks';
+import { exportBundleToDirectory, exportContentToDirectory, FileStore } from '../electron/storage';
+import { createBank, validateBundle } from '../src/domain/banks';
+import { exportQuestionBankContent } from '../src/domain/questionBankPackage';
 
 let root: string;
 beforeEach(async () => { root = await mkdtemp(join(tmpdir(), 'recallmate-test-')); });
@@ -48,5 +49,33 @@ describe('本地 JSON 存储与恢复', () => {
     const first = await exportBundleToDirectory(b, directory), second = await exportBundleToDirectory(b, directory);
     expect(first.startsWith(directory + sep)).toBe(true); expect(second).not.toBe(first);
     expect(JSON.parse(await readFile(first, 'utf8'))).toEqual(b); expect(await readdir(directory)).toHaveLength(2);
+  });
+  function legacy() {
+    const raw:any=createBank('{{旧答案}}');delete raw.format;raw.schemaVersion=raw.bank.schemaVersion=1;delete raw.bank.contentId;delete raw.bank.knowledgePoints;
+    raw.bank.questions.forEach((q:any)=>{delete q.externalId;delete q.type;});return raw;
+  }
+  it('V1 首次读取不改文件，首次保存先逐字节保留迁移原件',async()=>{
+    const raw=legacy(),bytes=Buffer.from('\n'+JSON.stringify(raw,null,4)+'\r\n'),store=new FileStore(root),id=raw.bank.id;
+    await mkdir(join(root,'banks'));await writeFile(join(root,'banks',`${id}.json`),bytes);
+    const b=(await store.load()).bundles[0];expect(b.schemaVersion).toBe(2);expect(await readFile(join(root,'banks',`${id}.json`))).toEqual(bytes);
+    await store.save(b);expect(await readFile(join(root,'migrations',`${id}.v1.original.json`))).toEqual(bytes);
+    await store.save({...b,bank:{...b.bank,name:'修改后'}});expect(await readFile(join(root,'migrations',`${id}.v1.original.json`))).toEqual(bytes);
+    expect((await store.load()).bundles[0].bank.name).toBe('修改后');
+  });
+  it('迁移原件无法写入时停止保存，旧主文件及备份均不动',async()=>{
+    const raw=legacy(),bytes=JSON.stringify(raw),id=raw.bank.id,store=new FileStore(root);await mkdir(join(root,'banks'));await writeFile(join(root,'banks',`${id}.json`),bytes);await writeFile(join(root,'migrations'),'模拟不可写目录');
+    await expect(store.save(validateBundle(raw))).rejects.toThrow();expect(await readFile(join(root,'banks',`${id}.json`),'utf8')).toBe(bytes);expect(await readdir(join(root,'backups'))).toEqual([]);
+  });
+  it('主文件损坏且备份 V1 时，保存前归档有效旧备份',async()=>{
+    const raw=legacy(),bytes=JSON.stringify(raw),id=raw.bank.id,store=new FileStore(root);await mkdir(join(root,'banks'));await mkdir(join(root,'backups'));await writeFile(join(root,'banks',`${id}.json`),'{坏');await writeFile(join(root,'backups',`${id}.json.bak`),bytes);
+    const b=(await store.load()).bundles[0];await store.save(b);expect(await readFile(join(root,'migrations',`${id}.v1.original.json`),'utf8')).toBe(bytes);expect(await readFile(join(root,'backups',`${id}.json.bak`),'utf8')).toBe(bytes);expect((await readdir(join(root,'banks'))).some(x=>x.includes('.corrupt-'))).toBe(true);
+  });
+  it('未来版本主文件禁止退回旧备份，也禁止直接写覆盖',async()=>{
+    const b=createBank('{{甲}}'),store=new FileStore(root);await store.save(b);await store.save(b);const file=join(root,'banks',`${b.bank.id}.json`),future=JSON.stringify({...b,schemaVersion:3});await writeFile(file,future);
+    const result=await store.load();expect(result.bundles).toEqual([]);expect(result.warnings[0]).toContain('升级');await expect(store.save(b)).rejects.toThrow('禁止覆盖');expect(await readFile(file,'utf8')).toBe(future);
+    await expect(new FileStore(root).save(b)).rejects.toThrow('高版本');expect(await readFile(file,'utf8')).toBe(future);
+  });
+  it('内容导出不包含学习记录，文件名安全且互不覆盖',async()=>{
+    const content=exportQuestionBankContent(createBank('# 内容/示例\n{{甲}}')),directory=join(root,'exports');const a=await exportContentToDirectory(content,directory),b=await exportContentToDirectory(content,directory);expect(a.startsWith(directory+sep)).toBe(true);expect(a).toMatch(/\.questionbank\.json$/);expect(a).not.toBe(b);expect(JSON.parse(await readFile(a,'utf8'))).toEqual(content);
   });
 });

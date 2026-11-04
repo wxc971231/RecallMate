@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { join } from 'node:path';
 import { readFile, stat } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { exportBundleToDirectory, FileStore } from './storage';
+import { exportBundleToDirectory, exportContentToDirectory, FileStore } from './storage';
 import { validateBundle } from '../src/domain/banks';
 import { configureRuntimePaths, resolveRuntimePaths } from './runtimePaths';
 import { SettingsStore } from './settingsStore';
@@ -65,6 +65,7 @@ if (locked) app.whenReady().then(() => {
     return true;
   });
   handle('data:path', () => app.getPath('userData'));
+  handle('files:export-content', async (input: unknown) => { await exportContentToDirectory(input, runtime.exports); return true; });
   handle('data:open', async () => { const error = await shell.openPath(app.getPath('userData')); if (error) throw new Error(error); });
   handle('app:close-ready', async (saved: boolean) => {
     if (!closing) return;

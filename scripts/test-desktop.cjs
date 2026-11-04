@@ -76,6 +76,13 @@ app.on('browser-window-created', (_event, win) => {
       await screenshot('home.png');
       await click('体验示例题库');
       check(await evaluate('document.querySelector("[role=dialog]").textContent.includes("20 道题目")'), 'Import preview parses 20 questions');
+      check(await evaluate('Math.abs(document.querySelector(".import-source-heading").getBoundingClientRect().top-document.querySelector(".import-preview-heading").getBoundingClientRect().top)<1 && Math.abs(document.querySelector("#import-text").getBoundingClientRect().top-document.querySelector(".import-preview").getBoundingClientRect().top)<1'),'Import headings and content surfaces align across columns');
+      check(await evaluate('Math.abs(document.querySelector("#bank-name").getBoundingClientRect().bottom-document.querySelector(".import-preview").getBoundingClientRect().bottom)<1'),'Import preview bottom aligns with source form');
+      await screenshot('import-aligned.png');
+      win.setContentSize(760,600);await delay(100);
+      check(await evaluate('Math.abs(document.querySelector("#import-text").getBoundingClientRect().left-document.querySelector(".import-preview").getBoundingClientRect().left)<1 && document.querySelector(".import-grid").scrollWidth<=document.querySelector(".import-grid").clientWidth'),'Narrow import layout stacks cleanly without horizontal overflow');
+      win.setContentSize(1180,820);await delay(100);
+
       await click('导入 20 道题目');
       await until('document.querySelectorAll(".question-row").length === 10', 'import saved and detail loaded');
       check((await fs.readdir(path.join(profile, 'banks'))).length === 1, 'Import persists a JSON bank through IPC');
@@ -85,7 +92,7 @@ app.on('browser-window-created', (_event, win) => {
       await clickAria('第1页'); await screenshot('detail-compact.png');
       await click('开始练习');
       await until('document.querySelector(".question-card") !== null', 'practice loaded');
-      check(await evaluate('document.activeElement?.getAttribute("aria-label") === "第 1 个填空"'), 'First blank autofocus');
+      check(await evaluate('!document.activeElement?.matches(".blank-wrap input")'), 'Opening a cloze question does not autofocus an answer');
       check(await evaluate('[...document.querySelectorAll(".blank-wrap input")].every(input => !input.placeholder)'), 'Answer fields contain no numeric placeholders');
       await fill('第 1 个填空', '线粒体'); await enter();
       check(await evaluate('document.querySelectorAll(".judge-correct").length === 1 && document.querySelectorAll(".judge-incorrect").length === 2'), 'Enter highlights correct and incorrect characters separately');
@@ -210,6 +217,7 @@ app.on('browser-window-created', (_event, win) => {
       check(Object.values(matching.bank.stats).reduce((sum, s) => sum + s.wrongAttemptCount, 0) === 3, 'Partial and incomplete submissions retain once-per-attempt wrong statistics');
       await require('./test-desktop-shortcuts.cjs')({ evaluate, click, clickAria, fill, until, delay, screenshot, check, target });
       await require('./test-desktop-strict.cjs')({ evaluate, click, clickAria, fill, enter, until, delay, screenshot, check, target });
+      await require('./test-desktop-mixed.cjs')({ evaluate, click, clickAria, fill, enter, until, delay, screenshot, check, target });
       await until('document.querySelector(".save-indicator").textContent.includes("已保存")', 'save complete');
       console.log(`Desktop smoke completed: ${assertions} assertions. Profile: ${profile}`);
       await fs.writeFile(path.join(root, 'artifacts', 'desktop-test-result.json'), JSON.stringify({ assertions, profile, passed: true }, null, 2));
@@ -223,4 +231,4 @@ app.on('browser-window-created', (_event, win) => {
   });
 });
 require(path.join(process.env.RECALLMATE_PACKAGED_ROOT || root, 'out/main/index.js'));
-setTimeout(() => { console.error('Desktop test timeout'); app.exit(1); }, 120000).unref();
+setTimeout(() => { console.error('Desktop test timeout'); app.exit(1); }, 180000).unref();

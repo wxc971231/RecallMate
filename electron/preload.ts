@@ -8,6 +8,7 @@ const api: DesktopAPI = {
   remove: id => ipcRenderer.invoke('banks:remove', id),
   chooseFile: () => ipcRenderer.invoke('files:choose'),
   exportFile: bundle => ipcRenderer.invoke('files:export', bundle),
+  exportContent: content => ipcRenderer.invoke('files:export-content', content),
   dataDirectory: () => ipcRenderer.invoke('data:path'),
   openDataDirectory: () => ipcRenderer.invoke('data:open'),
   onBeforeClose: callback => {

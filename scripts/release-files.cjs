@@ -1,5 +1,26 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { createHash } = require('node:crypto');
+
+async function verifyCopy(source, destination) {
+  const manifest = [];
+  async function walk(relative) {
+    for (const entry of await fs.readdir(path.join(source, relative), { withFileTypes: true })) {
+      const child = path.join(relative, entry.name);
+      if (entry.isDirectory()) await walk(child);
+      else if (entry.isFile()) {
+        const original = await fs.readFile(path.join(source, child));
+        const copy = await fs.readFile(path.join(destination, child));
+        const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+        const sha256 = digest(original);
+        if (sha256 !== digest(copy)) throw new Error(`Data backup verification failed: ${child}`);
+        manifest.push({ path: child, bytes: original.length, sha256 });
+      } else throw new Error(`Unexpected data entry: ${child}`);
+    }
+  }
+  await walk('');
+  return manifest;
+}
 
 function inside(parent, target) {
   const boundary = path.resolve(parent), checked = path.resolve(target);
@@ -48,6 +69,8 @@ async function backupReleaseData(workspace, release, entries) {
     await fs.mkdir(parent, { recursive: true });
     const directory = await fs.mkdtemp(path.join(parent, `${entry.name}-`));
     await fs.cp(source, path.join(directory, 'data'), { recursive: true, force: false, errorOnExist: true });
+    const manifest = await verifyCopy(source, path.join(directory, 'data'));
+    await fs.writeFile(path.join(directory, 'manifest.json'), JSON.stringify(manifest, null, 2), { flag: 'wx', flush: true });
     backups.push({ from: source, to: path.join(directory, 'data') });
   }
   return backups;
@@ -62,4 +85,4 @@ async function removeReleaseEntries(release, entries) {
     await fs.rm(target, { recursive: entry.isDirectory(), force: false });
   }
 }
-module.exports = { inside, managedName, inspectRelease, backupReleaseData, removeReleaseEntries };
+module.exports = { inside, managedName, inspectRelease, backupReleaseData, removeReleaseEntries, verifyCopy };

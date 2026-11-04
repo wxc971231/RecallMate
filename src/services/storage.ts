@@ -3,6 +3,7 @@ import type { Bundle, DesktopAPI } from '../domain/types';
 import { defaultSettings, validateSettings } from '../domain/settings';
 import { isAndroid } from './platform';
 import { createAndroidStorage } from './androidStorage';
+import { validateQuestionBankPackage } from '../domain/questionBankPackage';
 declare global { interface Window { recallmate?: DesktopAPI } }
 
 // The browser preview uses its own local storage; the desktop always uses JSON files via IPC.
@@ -17,7 +18,15 @@ const browserAPI: DesktopAPI = {
     }
     return { bundles, warnings };
   },
-  async save(bundle) { validateBundle(bundle); localStorage.setItem(`recallmate.bank.${bundle.bank.id}`, JSON.stringify(bundle)); },
+  async save(input) {
+    const bundle=validateBundle(input),key=`recallmate.bank.${bundle.bank.id}`,previous=localStorage.getItem(key);
+    if(previous){
+      const raw=JSON.parse(previous);
+      if(typeof raw.schemaVersion==='number'&&raw.schemaVersion>2)throw new Error('原题库属于更高版本，禁止覆盖');
+      if(raw.schemaVersion===1){validateBundle(raw);const archive=`recallmate.migration.v1.${bundle.bank.id}`;if(!localStorage.getItem(archive))localStorage.setItem(archive,previous);}
+    }
+    localStorage.setItem(key,JSON.stringify(bundle));
+  },
   async remove(id) { localStorage.removeItem(`recallmate.bank.${id}`); },
   async chooseFile() {
     return new Promise(resolve => {
@@ -32,6 +41,10 @@ const browserAPI: DesktopAPI = {
     setTimeout(() => URL.revokeObjectURL(url), 1000); return true;
   },
   async dataDirectory() { return '浏览器预览：数据保存在当前浏览器。桌面版使用本地 JSON 文件。'; },
+  async exportContent(input) {
+    const content=validateQuestionBankPackage(input), url=URL.createObjectURL(new Blob([JSON.stringify(content,null,2)],{type:'application/json'}));
+    const link=document.createElement('a');link.href=url;link.download=`${content.bank.name}.questionbank.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return true;
+  },
   async openDataDirectory() { throw new Error('请在桌面版中打开数据目录'); },
   onBeforeClose: () => () => {},
 };

@@ -2,7 +2,7 @@ param([string]$PortableFolder)
 $ErrorActionPreference = 'Stop'
 $recallWorkspace = [System.IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
 if (-not $PortableFolder) {
-    $recallVersion = (Get-Content -LiteralPath (Join-Path $recallWorkspace 'package.json') -Raw | ConvertFrom-Json).version
+    $recallVersion = (Get-Content -LiteralPath (Join-Path $recallWorkspace 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
     $PortableFolder = Join-Path $recallWorkspace ('release\RecallMate-' + $recallVersion + '-Portable')
 }
 $recallSource = (Resolve-Path -LiteralPath $PortableFolder).Path

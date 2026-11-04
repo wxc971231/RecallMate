@@ -51,7 +51,10 @@ async function main() {
     await tap('开始练习');
   } else {
     assert.ok(process.argv.includes('--reuse-test-bank'),'Existing release data: use a fresh disposable emulator, or explicitly reuse the previously created test bank.');
-    await tap('记忆热身 · 综合知识'); await tap('选择练习模式'); await tap('新建顺序练习'); await tap('开始新练习');
+    await tap('记忆热身 · 综合知识');
+    const controls=await nodes();
+    await tap(controls.some(n=>n.text==='新建练习'||n['content-desc']==='新建练习')?'新建练习':'选择练习模式');
+    await tap('新建顺序练习'); await tap('开始新练习');
     check(true,'Previously imported release test bank remains readable while offline');
   }
   await tap('跳过'); await tap('放弃');

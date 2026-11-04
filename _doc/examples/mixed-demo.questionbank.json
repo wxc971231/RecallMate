@@ -1,0 +1,104 @@
+{
+  "format": "recallmate.question-bank",
+  "version": 1,
+  "bank": {
+    "id": "recallmate-public-demo",
+    "name": "四题型中性开发示例",
+    "description": "为开发演示虚构的项目与课程规则，不含用户内测材料。"
+  },
+  "knowledgePoints": [
+    {
+      "id": "kp-name",
+      "title": "演示项目名称",
+      "content": "演示项目的名称是 RecallMate。"
+    },
+    {
+      "id": "kp-offline",
+      "title": "演示项目的使用方式",
+      "content": "演示项目支持在离线状态下练习，不需要连接网络。"
+    },
+    {
+      "id": "kp-assessment",
+      "title": "演示课程考核组成",
+      "source": "本示例的虚构课程规则",
+      "locator": "第 1 条",
+      "content": "演示课程考核仅由作业、测验、期末考试三部分组成。"
+    }
+  ],
+  "questions": [
+    {
+      "id": "fill-001",
+      "type": "cloze",
+      "stem": "演示项目的名称是{{RecallMate}}。",
+      "knowledgeRefs": [
+        "kp-name"
+      ]
+    },
+    {
+      "id": "tf-001",
+      "type": "true_false",
+      "stem": "演示项目必须连接网络才能练习。",
+      "answer": false,
+      "knowledgeRefs": [
+        "kp-offline"
+      ],
+      "explanation": "根据知识点 kp-offline“演示项目支持在离线状态下练习，不需要连接网络。”，题干说“必须连接网络”，与原文相反，因此判断错误。"
+    },
+    {
+      "id": "sc-001",
+      "type": "single_choice",
+      "stem": "演示项目的名称是什么？",
+      "options": [
+        {
+          "id": "A",
+          "text": "项目甲"
+        },
+        {
+          "id": "B",
+          "text": "RecallMate"
+        },
+        {
+          "id": "C",
+          "text": "项目乙"
+        }
+      ],
+      "answer": "B",
+      "knowledgeRefs": [
+        "kp-name"
+      ],
+      "explanation": "- A：不选\n  知识点 kp-name：“演示项目的名称是 RecallMate。”\n  该选项名称“项目甲”与 RecallMate 不一致，因此不选。\n\n- B：应选\n  知识点 kp-name：“演示项目的名称是 RecallMate。”\n  该选项名称“RecallMate”与项目名称一致，因此应选。\n\n- C：不选\n  知识点 kp-name：“演示项目的名称是 RecallMate。”\n  该选项名称“项目乙”与 RecallMate 不一致，因此不选。"
+    },
+    {
+      "id": "mc-001",
+      "type": "multiple_choice",
+      "stem": "根据演示课程规则，考核由哪些部分组成？",
+      "options": [
+        {
+          "id": "A",
+          "text": "作业"
+        },
+        {
+          "id": "B",
+          "text": "测验"
+        },
+        {
+          "id": "C",
+          "text": "期末考试"
+        },
+        {
+          "id": "D",
+          "text": "课堂签到"
+        }
+      ],
+      "answer": [
+        "A",
+        "B",
+        "C"
+      ],
+      "knowledgeRefs": [
+        "kp-assessment"
+      ],
+      "explanation": "- A：应选\n  知识点 kp-assessment：“演示课程考核仅由作业、测验、期末考试三部分组成。”\n  “作业”属于原文列举的考核组成，因此应选。\n\n- B：应选\n  知识点 kp-assessment：“演示课程考核仅由作业、测验、期末考试三部分组成。”\n  “测验”属于原文列举的考核组成，因此应选。\n\n- C：应选\n  知识点 kp-assessment：“演示课程考核仅由作业、测验、期末考试三部分组成。”\n  “期末考试”属于原文列举的考核组成，因此应选。\n\n- D：不选\n  知识点 kp-assessment：“演示课程考核仅由作业、测验、期末考试三部分组成。”\n  “课堂签到”不在三项考核组成中，因此不选。"
+    }
+  ]
+}

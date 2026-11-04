@@ -1,7 +1,7 @@
 {
   "name": "recallmate",
-  "version": "0.1.6",
-  "description": "离线填空背诵工具",
+  "version": "0.2.9",
+  "description": "离线多题型练习工具",
   "author": "RecallMate",
   "private": true,
   "main": "out/main/index.js",
@@ -21,6 +21,8 @@
     "android:apk": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-android.ps1",
     "test:android": "node scripts/test-android.cjs",
     "test:android:release": "node scripts/test-android-release.cjs",
+    "test:android:mixed": "node scripts/test-android-mixed.cjs",
+    "test:android:migration": "node scripts/test-android-migration.cjs",
     "test:android:keyboard": "node scripts/test-android-keyboard.cjs"
   },
   "dependencies": {

@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createBank } from '../src/domain/banks';
 import { defaultSettings } from '../src/domain/settings';
 import { createAndroidStorage } from '../src/services/androidStorage';
+import { startSession, practiceAction } from '../src/domain/practice';
+import { exportQuestionBankContent } from '../src/domain/questionBankPackage';
 
 vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn() } }));
 
@@ -77,5 +79,36 @@ describe('安卓存储适配与跨平台备份', () => {
     const options = files.exportFile.mock.calls[0][0];
     expect(options.name).toBe('带_斜杠的题库.recallmate.json'); expect(JSON.parse(options.text)).toEqual(bundle);
     files.exportFile.mockResolvedValue({ saved: false }); expect(await storage.exportFile(bundle)).toBe(false);
+  });
+  function legacy() {
+    let b=startSession(bank(),'all');b=practiceAction(b,{type:'edit',index:0,value:'答'});b=practiceAction(b,{type:'submit'});
+    const raw:any=structuredClone(b);delete raw.format;raw.schemaVersion=raw.bank.schemaVersion=raw.session.schemaVersion=1;
+    delete raw.bank.contentId;delete raw.bank.knowledgePoints;raw.bank.questions.forEach((q:any)=>{delete q.type;delete q.externalId;});delete raw.session.currentAttempt.questionType;return raw;
+  }
+  it('V1 保留草稿、统计、旧规则，首次写入要求原生先归档原始文本',async()=>{
+    const raw=legacy(),text='\r\n'+JSON.stringify(raw,null,4)+'\r\n';files.list.mockResolvedValue({records:[{id:raw.bank.id,main:text}],warnings:[]});
+    const store=createAndroidStorage(files),b=(await store.load()).bundles[0];expect(b.schemaVersion).toBe(2);expect(b.bank.stats).toEqual(raw.bank.stats);expect(b.session!.currentAttempt).toMatchObject({...JSON.parse(JSON.stringify(raw.session.currentAttempt)),questionType:'cloze'});
+    expect(b.session!.currentAttempt).not.toHaveProperty('strictBlankOrder');await store.save(b);expect(files.write.mock.calls[0][0]).toMatchObject({legacyOriginal:text,previous:text,preserve:false});
+    await store.save(b);expect(files.write.mock.calls[1][0]).not.toHaveProperty('legacyOriginal');
+  });
+  it('迁移归档失败不推进快照，重试仍携带完整 V1 原文',async()=>{
+    const raw=legacy(),text=JSON.stringify(raw);files.list.mockResolvedValue({records:[{id:raw.bank.id,main:text}],warnings:[]});const store=createAndroidStorage(files),b=(await store.load()).bundles[0];
+    files.write.mockRejectedValueOnce(new Error('原件归档失败'));await expect(store.save(b)).rejects.toThrow('归档');await store.save(b);
+    expect(files.write.mock.calls[1][0]).toMatchObject({legacyOriginal:text,previous:text});
+  });
+  it('损坏主文件恢复 V1 备份时，归档的原文来自有效备份',async()=>{
+    const raw=legacy(),text=JSON.stringify(raw,null,2);files.list.mockResolvedValue({records:[{id:raw.bank.id,main:'broken',backup:text}],warnings:[]});const store=createAndroidStorage(files),b=(await store.load()).bundles[0];await store.save(b);
+    expect(files.write.mock.calls[0][0]).toMatchObject({legacyOriginal:text,previous:text,preserve:true});
+  });
+  it('未来主版本不退回旧备份，且禁止写入覆盖',async()=>{
+    const b=bank();files.list.mockResolvedValue({records:[{id:b.bank.id,main:JSON.stringify({...b,schemaVersion:3}),backup:JSON.stringify(b)}],warnings:[]});const store=createAndroidStorage(files),result=await store.load();
+    expect(result.bundles).toEqual([]);expect(result.warnings[0]).toContain('不支持');await expect(store.save(b)).rejects.toThrow('禁止覆盖');expect(files.write).not.toHaveBeenCalled();
+  });
+  it('混合的未来子版本也禁止回退和覆盖',async()=>{
+    const b=bank();files.list.mockResolvedValue({records:[{id:b.bank.id,main:JSON.stringify({...b,schemaVersion:1,bank:{...b.bank,schemaVersion:3}}),backup:JSON.stringify(b)}],warnings:[]});const store=createAndroidStorage(files);expect((await store.load()).bundles).toHaveLength(0);await expect(store.save(b)).rejects.toThrow('禁止覆盖');
+  });
+  it('原生内容导出只含题库内容，不包含学习记录',async()=>{
+    const b=startSession(bank(),'all'),content=exportQuestionBankContent(b);const store=createAndroidStorage(files);await store.exportContent(content);const output=JSON.parse(files.exportFile.mock.calls[0][0].text);
+    expect(output.format).toBe('recallmate.question-bank');expect(output).not.toHaveProperty('session');expect(output.bank).not.toHaveProperty('stats');
   });
 });

@@ -12,3 +12,69 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 .practice-setting{display:flex;align-items:center;justify-content:space-between;gap:24px}.practice-setting label{display:flex;flex-direction:column;gap:8px;cursor:pointer}.practice-setting strong{font-size:1rem;font-weight:500}.practice-setting label>span{font-size:.9rem;line-height:1.8;color:var(--muted);max-width:570px}.setting-switch{appearance:none;flex:0 0 44px;width:44px;height:26px;border:1px solid #b9c9bf;border-radius:20px;background:#d7dfda;cursor:pointer;position:relative}.setting-switch:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #183c2730}.setting-switch:checked{background:var(--green);border-color:var(--green)}.setting-switch:checked:before{left:21px}.setting-switch:focus-visible{outline:2px solid var(--green);outline-offset:3px}.setting-switch:disabled{opacity:.5;cursor:default}.settings-content .setting-note{font-size:.85rem;margin-top:12px;margin-bottom:0}.strict-mode-label{color:var(--green)}
 .shortcut-list{display:flex;flex-direction:column;gap:12px;max-width:560px}.shortcut-row{display:grid;grid-template-columns:160px minmax(130px,1fr) 42px;gap:12px;align-items:center}.shortcut-row label{font-size:.95rem}.shortcut-recorder{height:38px;text-align:center;cursor:pointer;caret-color:transparent}.shortcut-recorder:focus{border-color:var(--green);box-shadow:0 0 0 2px #d9ece2}.shortcut-settings-actions{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:18px;max-width:560px}.shortcut-save-status{color:var(--green)!important;margin:10px 0 0!important}.tool-button[data-shortcut]::after{content:attr(data-shortcut);font-size:.72rem;color:#75877c;border:1px solid #d5dfd8;border-radius:3px;padding:0 4px;white-space:nowrap}.shortcut-settings>p{max-width:600px}
+
+/* Mixed question practice keeps the existing compact desktop layout. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.objective-card{min-height:0;flex:1 1 0;overflow:hidden}.objective-card .question-meta{flex-shrink:0}.objective-practice{flex:0 0 auto;height:calc(100dvh - 180px);min-height:340px}.objective-body{overflow-y:auto;overscroll-behavior:contain;min-height:0;flex:1;padding:22px 12px 14px 0;scrollbar-gutter:stable}.objective-stem{font-size:var(--practice-font-size);line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:20px}.objective-options{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;min-width:0}.objective-option{display:flex;align-items:baseline;gap:12px;border:1px solid #d8e2dc;border-radius:6px;padding:13px 17px;cursor:pointer;font-size:var(--practice-font-size);line-height:1.6;color:#25332e}.objective-option.selected{background:#f1f7f4;border-color:#79a592}.objective-option:focus-within{outline:2px solid var(--green);outline-offset:2px}.objective-option input{accent-color:var(--green);flex-shrink:0;width:18px;height:18px}.option-letter{font-size:.9em}.option-text{flex:1;white-space:pre-wrap;overflow-wrap:anywhere;min-width:0}.option-verdict{font-size:.85rem;white-space:nowrap}.objective-option.option-correct{border-color:#6aa385;background:#eef8f1}.objective-option.option-missing{border-color:#c5a350;background:#fff9e8}.objective-option.option-incorrect{border-color:#cf8b79;background:#fff1ee}.objective-options:disabled .objective-option{cursor:default}.objective-options:disabled input{opacity:1}.objective-feedback{margin-top:18px;line-height:1.8}.objective-feedback>p{margin:8px 0}.question-feedback.negative,.inline-error{color:#ad503e}.selection-diff{display:flex;gap:25px;color:#9c6330}.answer-explanation{border-top:1px solid var(--line);padding-top:12px;margin-top:16px;font-size:1rem;line-height:1.9}.answer-explanation h3{font-size:1rem;margin:8px 0;font-weight:550}.answer-explanation h3 span{color:#7d8981;font-weight:400}.answer-explanation p{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}.knowledge-point{border:1px solid var(--line);border-radius:5px;padding:10px 14px;margin:10px 0}.knowledge-point summary{cursor:pointer;color:#3d5e4e}.knowledge-source{font-size:.85rem;margin-top:8px}.editor-answer{border:1px solid var(--line);border-radius:5px;margin:12px 0;padding:12px}.editor-answer>label{margin-right:22px}.editor-option{display:flex;align-items:center;gap:10px;margin:10px 0}.editor-option .text-input{flex:1;min-width:0}.editor-knowledge{margin-top:16px}.editor-knowledge summary{cursor:pointer}.editor-knowledge>label{display:flex;gap:10px;margin:8px 0}.import-confirm{display:flex;align-items:baseline;gap:10px;line-height:1.7;margin-top:16px}.parse-errors{white-space:pre-wrap;overflow-wrap:anywhere}.list-toolbar{flex-wrap:wrap}.blank-count-column{width:110px}.objective-practice .practice-actions{position:static;flex-shrink:0}
+@media(max-width:800px){.objective-option{padding:10px;gap:8px}.option-verdict{font-size:.75rem}.detail-heading>.button-row{flex-wrap:wrap}.blank-count-column{width:85px}}
+
+/* Fill and true/false practice use a single toolbar and a full-height reading area. */
+.cloze-body{display:contents}
+.app-shell[data-practice-layout=minimal]{height:100dvh;min-height:0;padding-bottom:0;overflow:hidden}
+[data-practice-layout=minimal] .app-header{height:44px;min-height:44px;padding:0 20px;gap:20px;position:relative}
+[data-practice-layout=minimal] .header-right{gap:8px}
+[data-practice-layout=minimal] .help-tool{display:none}
+.practice-mini-meta{justify-content:flex-start;align-items:center;min-width:0;gap:12px;font-size:.85rem;white-space:nowrap}
+.practice-mini-meta .progress-count{margin:0}
+.practice-mini-meta .strict-mode-label{font-size:.75rem;color:#7b8d83}
+[data-practice-layout=minimal] .practice-main{min-height:0;padding:4px 20px 0;max-width:none;overflow:hidden}
+[data-practice-layout=minimal] .practice-page{height:auto;min-height:0;flex:1 1 0}
+[data-practice-layout=minimal] .question-card{min-height:0;padding:0;flex:1 1 0;overflow:hidden}
+[data-practice-layout=minimal] .cloze-body{display:block;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:6px 10px 8px 0}
+[data-practice-layout=minimal] .question-text{margin:0;min-height:0;line-height:2.4}
+[data-practice-layout=minimal] .blank-label.unjudged,[data-practice-layout=minimal] .blank-label.correct{display:none}
+[data-practice-layout=minimal] .blank-label.partial,[data-practice-layout=minimal] .blank-label.incorrect{font-size:.65rem;min-height:0;margin-top:1px}
+[data-practice-layout=minimal] .practice-actions{position:static;flex-shrink:0;padding:5px 0;gap:8px}
+[data-practice-layout=minimal] .practice-actions .tool-button{padding-top:6px;padding-bottom:6px}
+[data-practice-layout=minimal] .app-footer{position:static;flex-shrink:0;min-height:20px;height:20px;padding:0 20px;background:#fff}
+[data-practice-layout=minimal] .app-footer>span{display:none}
+[data-practice-layout=minimal] .save-indicator{margin-left:auto;font-size:.7rem}
+[data-practice-layout=minimal] .objective-body{padding:10px 10px 8px 0}
+[data-practice-layout=minimal] .objective-stem{margin-bottom:14px;line-height:1.8}
+[data-practice-layout=minimal] [data-question-type=true_false] .objective-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+[data-practice-layout=minimal] .objective-option{padding:8px 14px;min-width:0}
+[data-practice-layout=minimal] .option-letter:empty{display:none}
+[data-practice-layout=minimal] .objective-feedback{margin-top:12px}
+[data-practice-layout=minimal] .objective-result-line{display:flex;align-items:baseline;gap:20px;flex-wrap:wrap}
+[data-practice-layout=minimal] .objective-result-line .question-feedback,[data-practice-layout=minimal] .objective-result-line p{margin:0;padding:0;font-size:.85rem}
+[data-practice-layout=minimal] .answer-explanation{margin-top:12px;padding-top:8px}
+[data-practice-layout=minimal] .knowledge-point{padding:7px 12px;margin:6px 0}
+.answer-explanation{border-top:0;padding-top:0;display:flex;flex-direction:column;gap:8px}
+.feedback-panel{border:1px solid var(--line);border-radius:5px;background:#fff}
+.feedback-panel>summary{cursor:pointer;padding:10px 14px;font-size:1rem;font-weight:550;color:#3d5e4e;line-height:1.6}
+.feedback-panel>summary span{font-weight:400;color:var(--muted)}
+.feedback-panel>summary:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.feedback-panel-body{padding:0 14px 10px}
+.feedback-panel-body>.knowledge-point{border:0;padding:8px 0;margin:0}
+.feedback-panel-body>.knowledge-point+.knowledge-point{border-top:1px solid var(--line)}
+.feedback-panel .knowledge-point h3{font-size:.95rem;margin:0 0 4px}
+[data-practice-layout=minimal] .feedback-panel-body>.knowledge-point{padding:6px 0;margin:0}
+.knowledge-point .knowledge-source{display:inline;margin:0;font-weight:400}
+.knowledge-point p{line-height:1.65;margin:4px 0}
+.option-explanations{padding-left:20px;margin:4px 0 0;list-style:disc}
+.option-explanations>li{padding:6px 0 10px;line-height:1.75;overflow-wrap:anywhere}
+.option-explanations>li::marker{color:#8ba396}
+.option-explanations>li+li{padding-top:12px;border-top:1px solid var(--line)}
+.option-explanation-title{display:block;font-weight:600;margin-bottom:6px}
+.option-explanation-evidence{margin:5px 0;padding-left:10px;border-left:2px solid #c9dace;color:#596d61;white-space:pre-wrap;font-size:.95rem}
+.option-explanations li p{margin:4px 0;line-height:1.75}
+.option-explanations li .option-explanation-option{margin:4px 0 8px;font-weight:500;color:#25332e}
+.import-grid{grid-template-areas:"source-heading preview-heading" "source preview";grid-template-rows:auto 1fr;column-gap:24px;row-gap:12px;align-items:stretch}
+.import-source-heading{grid-area:source-heading;margin:0}
+.import-preview-heading{grid-area:preview-heading;margin:0}
+.import-source{grid-area:source;display:flex;flex-direction:column;min-width:0}
+.import-source .code-input{flex:1 0 auto;min-height:180px}
+.import-preview{grid-area:preview;padding:16px}
+.import-preview>h3{margin-top:0}
+@media(max-width:800px){.import-grid{grid-template-areas:"source-heading" "source" "preview-heading" "preview";grid-template-rows:auto;row-gap:10px}.import-preview-heading{margin-top:8px}.import-source .code-input{flex:none}}
+.new-practice-menu>summary{width:auto;color:var(--green)}

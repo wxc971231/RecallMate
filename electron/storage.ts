@@ -1,16 +1,27 @@
 import { mkdir, readFile, writeFile, rename, copyFile, readdir, unlink, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { validateBundle, validId } from '../src/domain/banks';
+import { validateBundle, validId, UnsupportedVersionError } from '../src/domain/banks';
+import { validateLegacyBundle } from '../src/domain/legacy';
+import { assertFileSize, validateQuestionBankPackage } from '../src/domain/questionBankPackage';
 import type { Bundle, LoadResult } from '../src/domain/types';
 import { randomUUID } from 'node:crypto';
 
 export async function exportBundleToDirectory(input: unknown, directory: string): Promise<string> {
   const bundle = validateBundle(input);
+  assertFileSize(JSON.stringify(bundle));
   const name = bundle.bank.name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').slice(0, 60);
   await mkdir(directory, { recursive: true });
   const path = join(directory, `${name}-${Date.now()}-${randomUUID().slice(0, 8)}.recallmate.json`);
   await writeFile(path, JSON.stringify(bundle, null, 2), { encoding: 'utf8', flag: 'wx', flush: true });
   return path;
+}
+
+export async function exportContentToDirectory(input: unknown, directory: string): Promise<string> {
+  const content=validateQuestionBankPackage(input),text=JSON.stringify(content,null,2);assertFileSize(text);
+  await mkdir(directory,{recursive:true});
+  const name=content.bank.name.replace(/[<>:"/\\|?*\x00-\x1F]/g,'_').slice(0,60)||'RecallMate';
+  const path=join(directory,`${name}-${Date.now()}-${randomUUID().slice(0,8)}.questionbank.json`);
+  await writeFile(path,text,{encoding:'utf8',flag:'wx',flush:true});return path;
 }
 
 export class FileStore {
@@ -38,7 +49,8 @@ export class FileStore {
         const bundle = await this.read(paths.main);
         if (bundle.bank.id !== id) throw new Error('文件名与题库 ID 不一致');
         result.bundles.push(bundle);
-      } catch {
+      } catch (error) {
+        if (error instanceof UnsupportedVersionError) { this.blocked.add(id); result.warnings.push(`题库 ${id} 的版本高于当前支持范围，请升级应用；未读取旧备份或覆盖原文件。`); continue; }
         try {
           const bundle = await this.read(paths.backup);
           if (bundle.bank.id !== id) throw new Error('备份 ID 不一致');
@@ -57,18 +69,35 @@ export class FileStore {
     this.queues.set(id, pending);
     return pending;
   }
+  private async preserveV1(id: string, candidates: string[]) {
+    for (const source of candidates) {
+      let bytes: Buffer;
+      try { if ((await stat(source)).size>20*1024*1024) continue; bytes=await readFile(source); } catch (error:any) { if(error.code==='ENOENT')continue;throw error; }
+      let raw: any; try { raw=JSON.parse(bytes.toString('utf8')); } catch { continue; }
+      if(typeof raw?.schemaVersion==='number'&&raw.schemaVersion>2)throw new UnsupportedVersionError('原文件属于更高版本，禁止覆盖');
+      if(raw?.schemaVersion!==1)continue;
+      try { if(validateLegacyBundle(raw).bank.id!==id)continue; } catch { continue; }
+      const directory=join(this.root,'migrations'),archive=join(directory,`${id}.v1.original.json`);
+      await mkdir(directory,{recursive:true});
+      try { await writeFile(archive,bytes,{flag:'wx',flush:true}); }
+      catch(error:any) { if(error.code!=='EEXIST')throw error; const old=validateLegacyBundle(JSON.parse(await readFile(archive,'utf8')));if(old.bank.id!==id)throw new Error('迁移原件标识不一致，未覆盖旧数据'); }
+      return;
+    }
+  }
   save(input: unknown): Promise<void> {
     const bundle = validateBundle(input), id = bundle.bank.id;
     const snapshot = JSON.stringify(bundle, null, 2);
+    assertFileSize(snapshot);
     return this.enqueue(id, async () => {
       if (this.blocked.has(id)) throw new Error('该题库文件损坏，已禁止覆盖，请先修复或恢复为新题库');
       await this.prepare();
       const paths = this.paths(id);
+      await this.preserveV1(id,[paths.main,paths.backup]);
       let exists = false;
       try { await stat(paths.main); exists = true; } catch (e: any) { if (e.code !== 'ENOENT') throw e; }
       if (exists) {
         let valid = false;
-        try { await this.read(paths.main); valid = true; } catch { /* Preserve corruption, never replace the valid backup with it. */ }
+        try { valid = (await this.read(paths.main)).bank.id===id; } catch (error) { if(error instanceof UnsupportedVersionError)throw error; /* Preserve corruption, never replace the valid backup with it. */ }
         if (valid) await copyFile(paths.main, paths.backup);
         else await copyFile(paths.main, `${paths.main}.corrupt-${Date.now()}`);
       }
